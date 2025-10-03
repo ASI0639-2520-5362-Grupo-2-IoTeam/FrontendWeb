@@ -1,0 +1,29 @@
+{
+  "users": [
+    {
+      "id": 1,
+      "username": "demo",
+      "password": "password",
+      "roles": [
+        "ROLE_USER"
+      ]
+    },
+    {
+      "id": 2,
+      "username": "admin",
+      "password": "adminpass",
+      "roles": [
+        "ROLE_ADMIN",
+        "ROLE_USER"
+      ]
+    },
+    {
+      "username": "sideral",
+      "password": "sideral",
+      "roles": [
+        "ROLE_USER"
+      ],
+      "id": 3
+    }
+  ]
+}

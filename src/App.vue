@@ -1,22 +1,35 @@
 <template>
-  <div class="app-layout">
-    <Sidebar class="sidebar-fixed" />
-    <div class="main-content">
-      <Header class="header-fixed" @menu-click="handleMenu" />
-      <div class="router-content">
-        <router-view />
+  <div>
+    <div v-if="showLayout" class="app-layout">
+      <Sidebar class="sidebar-fixed" />
+      <div class="main-content">
+        <Header class="header-fixed" @menu-click="handleMenu" />
+        <div class="router-content">
+          <router-view />
+        </div>
       </div>
+    </div>
+    <div v-else>
+      <router-view />
     </div>
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import Header from "./shared/components/Header.vue";
 import Sidebar from "./shared/components/Sidebar.vue";
+import { useRoute } from 'vue-router';
+import { computed } from 'vue';
 
 const handleMenu = () => {
   console.log('Menu clicked');
 };
+
+const route = useRoute();
+const showLayout = computed(() => {
+  // Mostrar layout solo si la ruta NO tiene meta.hideLayout === true
+  return !route.meta?.hideLayout;
+});
 </script>
 
 <style scoped>
