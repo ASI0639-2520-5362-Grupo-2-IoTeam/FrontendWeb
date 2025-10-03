@@ -25,5 +25,85 @@
       ],
       "id": 3
     }
+  ],
+  "plants": [
+    {
+      "id": 1,
+      "userId": 3,
+      "name": "Monstera Deliciosa",
+      "type": "Tropical",
+      "imgUrl": "https://bolaverdeperu.com/wp-content/uploads/2022/02/Captura_de_Pantalla_2022-02-04_a_la_s__13.03.43-removebg-preview.png",
+      "humidity": 72,
+      "lastWatered": "2 days ago",
+      "nextWatering": "In 3 days",
+      "status": "healthy",
+      "bio": "Esta Monstera es la joya de la corona, apodada 'La Devoradora Sideral'. Le encanta la luz indirecta brillante y es particularmente sensible a las melodías de baja frecuencia. Sus hojas muestran un crecimiento espectacular.",
+      "location": "Living Room"
+    },
+    {
+      "id": 2,
+      "userId": 3,
+      "name": "Snake Plant",
+      "type": "Succulent",
+      "imgUrl": "https://bolaverdeperu.com/wp-content/uploads/2022/02/Captura_de_Pantalla_2022-02-04_a_la_s__13.03.43-removebg-preview.png",
+      "humidity": 45,
+      "lastWatered": "1 week ago",
+      "nextWatering": "Today",
+      "status": "warning",
+      "bio": "Una guerrera silenciosa. No necesita mucha atención, pero su bajo nivel de humedad indica que quizás olvidé su último riego. Necesita un poco de agua o pasará a estado 'crítico' pronto.",
+      "location": "Bedroom"
+    },
+    {
+      "id": 3,
+      "userId": 3,
+      "name": "Fiddle Leaf Fig",
+      "type": "Tropical",
+      "imgUrl": "https://bolaverdeperu.com/wp-content/uploads/2022/02/Captura_de_Pantalla_2022-02-04_a_la_s__13.03.43-removebg-preview.png",
+      "humidity": 55,
+      "lastWatered": "Today",
+      "nextWatering": "In 5 days",
+      "status": "healthy",
+      "bio": "Una planta dramática, conocida por odiar los cambios. Ha sido regada hoy y está recibiendo su dosis diaria de sol matutino. Su tronco es el más fuerte de la colección. Todo bajo control.",
+      "location": "Hallway"
+    },
+    {
+      "id": 4,
+      "userId": 3,
+      "name": "Peace Lily",
+      "type": "Flowering",
+      "imgUrl": "https://bolaverdeperu.com/wp-content/uploads/2022/02/Captura_de_Pantalla_2022-02-04_a_la_s__13.03.43-removebg-preview.png",
+      "humidity": 68,
+      "lastWatered": "3 days ago",
+      "nextWatering": "Tomorrow",
+      "status": "healthy",
+      "bio": "Mi purificadora de aire favorita. Sus flores blancas son un signo de su bienestar. La reviso constantemente ya que es un excelente indicador de la humedad general del ambiente.",
+      "location": "Bathroom"
+    },
+    {
+      "id": 5,
+      "userId": 3,
+      "name": "Pothos",
+      "type": "Vine",
+      "imgUrl": "https://bolaverdeperu.com/wp-content/uploads/2022/02/Captura_de_Pantalla_2022-02-04_a_la_s__13.03.43-removebg-preview.png",
+      "humidity": 25,
+      "lastWatered": "2 weeks ago",
+      "nextWatering": "Now (CRITICAL)",
+      "status": "critical",
+      "bio": "¡Alerta roja! Esta Pothos ha estado descuidada. La biografía refleja su estado crítico. Necesita un remojo de emergencia y ser trasladada a un lugar con más sombra. Un rescate rápido es necesario.",
+      "location": "Kitchen Shelf"
+    },
+    {
+      "id": 6,
+      "userId": 3,
+      "name": "Rubber Plant",
+      "type": "Tropical",
+      "imgUrl": "https://bolaverdeperu.com/wp-content/uploads/2022/02/Captura_de_Pantalla_2022-02-04_a_la_s__13.03.43-removebg-preview.png",
+      "humidity": 65,
+      "lastWatered": "4 days ago",
+      "nextWatering": "In 6 days",
+      "status": "healthy",
+      "bio": "Un árbol pequeño y robusto. Sus hojas son gruesas y brillantes. Se mantiene estable y es muy tolerante, lo que me permite centrarme en mis plantas más 'críticas'.",
+      "location": "Office Desk"
+    }
   ]
 }

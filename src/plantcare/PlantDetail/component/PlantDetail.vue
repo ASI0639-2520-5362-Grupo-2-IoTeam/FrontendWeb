@@ -1,14 +1,17 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import Button from 'primevue/button';
+import { PlantsService } from '../../Plants/services/plats.services';
+import type { Plant as PlantEntity } from '../../Plants/model/plants.entity';
 
 interface HumidityData {
   day: string;
   value: number;
 }
 
-interface Plant {
+// Interfaz que usa el template (mantenerla para no tocar el template ni estilos)
+interface PlantView {
   id: number;
   name: string;
   type: string;
@@ -18,22 +21,44 @@ interface Plant {
   status: 'healthy' | 'warning' | 'critical';
   location: string;
   nextWatering: string;
+  bio?: string; // Nueva propiedad bio
+  imageUrl?: string; // Nueva propiedad para imagen
 }
 
 const router = useRouter();
 const route = useRoute();
+const plantsService = new PlantsService();
 
-const plants: Plant[] = [
-  { id: 1, name: 'Monstera Deliciosa', type: 'Tropical', icon: '🌿', humidity: 72, lastWatered: '2 days ago', status: 'healthy', location: 'Living Room', nextWatering: 'In 5 days' },
-  { id: 2, name: 'Snake Plant', type: 'Succulent', icon: '🪴', humidity: 45, lastWatered: '1 week ago', status: 'warning', location: 'Bedroom', nextWatering: 'In 2 days' },
-  { id: 3, name: 'Fiddle Leaf Fig', type: 'Tropical', icon: '🌱', humidity: 55, lastWatered: 'Today', status: 'healthy', location: 'Office', nextWatering: 'In 7 days' },
-  { id: 4, name: 'Peace Lily', type: 'Flowering', icon: '🌺', humidity: 68, lastWatered: '3 days ago', status: 'healthy', location: 'Kitchen', nextWatering: 'In 4 days' },
-  { id: 5, name: 'Pothos', type: 'Vine', icon: '🍃', humidity: 25, lastWatered: '2 weeks ago', status: 'critical', location: 'Bathroom', nextWatering: 'Today' },
-  { id: 6, name: 'Rubber Plant', type: 'Tropical', icon: '🌳', humidity: 65, lastWatered: '4 days ago', status: 'healthy', location: 'Hallway', nextWatering: 'In 3 days' },
-];
+const plant = ref<PlantView | null>(null);
 
-const plantId = computed(() => Number(route.params.id));
-const plant = computed(() => plants.find(p => p.id === plantId.value));
+const plantId = Number(route.params.id);
+
+function mapEntityToView(e: PlantEntity): PlantView {
+  return {
+    id: e.id,
+    name: e.name,
+    type: e.type,
+    icon: '', // Se agrega para cumplir con la interfaz, pero no se usa
+    humidity: e.humidity ?? 0,
+    lastWatered: e.lastWatered ?? '',
+    status: e.status ?? 'healthy',
+    location: e.location ?? '',
+    nextWatering: e.nextWatering ?? '',
+    bio: e.bio ?? 'Esta planta es especial por su resistencia y belleza. Ideal para interiores y fácil de cuidar.',
+    imageUrl: e.imgUrl ?? '/src/assets/vue.svg', // Usar imgUrl real
+  };
+}
+
+onMounted(async () => {
+  try {
+    const response = await plantsService.getPlantById(plantId);
+    // response.data es la entidad completa; la mapeamos a lo que espera el template
+    plant.value = mapEntityToView(response.data as PlantEntity);
+  } catch (err) {
+    console.error('Error cargando planta:', err);
+    plant.value = null;
+  }
+});
 
 const humidityData = ref<HumidityData[]>([
   { day: 'Mon', value: 65 },
@@ -75,12 +100,10 @@ const handleWaterNow = () => {
     <button class="back-button" @click="goBack">
       ← Back to Plants
     </button>
-
     <div v-if="plant" class="content">
-      <!-- Image Section -->
       <div class="image-section">
-        <div class="plant-image">
-          {{ plant.icon }}
+        <div class="plant-img-bg">
+          <img :src="plant.imageUrl" alt="Plant" class="plant-img" />
         </div>
         <div class="image-actions">
           <Button
@@ -93,6 +116,12 @@ const handleWaterNow = () => {
               class="btn-secondary"
               @click="handleEditInfo"
           />
+        </div>
+        <div class="plant-bio-card">
+          <span class="bio-icon">🌱</span>
+          <p class="plant-bio-text">
+            {{ plant.bio }}
+          </p>
         </div>
       </div>
 
@@ -221,24 +250,38 @@ const handleWaterNow = () => {
   border-radius: var(--radius-lg);
   padding: var(--spacing-xl);
   box-shadow: var(--shadow-md);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
 }
 
-.plant-image {
-  width: 100%;
-  aspect-ratio: 1;
-  background: linear-gradient(135deg, var(--secondary-green) 0%, var(--primary-green) 100%);
-  border-radius: var(--radius-lg);
+.plant-img-bg {
+  background: linear-gradient(135deg, #43ea7c 0%, #2dbd6e 100%);
+  border-radius: 1.5rem;
+  padding: 2rem 1rem;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  font-size: 120px;
-  margin-bottom: var(--spacing-lg);
+}
+
+.plant-img {
+  width: 120px;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 50%;
+  border: 4px solid #fff;
+  box-shadow: 0 4px 16px rgba(67,234,124,0.15);
+  background: #fff;
 }
 
 .image-actions {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--spacing-md);
+  width: 100%;
+  margin-top: 1rem;
 }
 
 .btn-secondary {
@@ -249,6 +292,37 @@ const handleWaterNow = () => {
 
 .btn-secondary:hover {
   border-color: var(--primary-green) !important;
+}
+
+.plant-bio-card {
+  background: #fff;
+  border-radius: 1rem;
+  box-shadow: 0 2px 12px rgba(67,234,124,0.12);
+  border: 1.5px solid #43ea7c;
+  padding: 1.2rem 1.5rem;
+  max-width: 370px;
+  text-align: center;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 1rem;
+}
+
+.bio-icon {
+  font-size: 2rem;
+  color: #43ea7c;
+  margin-bottom: 0.5rem;
+}
+
+.plant-bio-text {
+  color: #222;
+  font-size: 1.15rem;
+  font-weight: 500;
+  line-height: 1.6;
+  letter-spacing: 0.01em;
+  margin: 0;
+  font-family: 'Segoe UI', 'Roboto', 'Arial', sans-serif;
 }
 
 .detail-section {
@@ -488,9 +562,6 @@ const handleWaterNow = () => {
     padding: var(--spacing-lg);
   }
 
-  .plant-image {
-    font-size: 80px;
-  }
 
   .stats-row {
     grid-template-columns: 1fr;
@@ -504,6 +575,17 @@ const handleWaterNow = () => {
 
   .water-button {
     width: 100%;
+  }
+}
+
+@media (max-width: 600px) {
+  .plant-img-bg {
+    padding: 1rem 0.5rem;
+  }
+  .plant-bio-card {
+    font-size: 1rem;
+    max-width: 95vw;
+    padding: 1rem 0.5rem;
   }
 }
 </style>

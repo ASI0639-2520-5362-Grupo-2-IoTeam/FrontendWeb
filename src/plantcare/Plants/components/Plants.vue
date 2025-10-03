@@ -1,18 +1,12 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
+import { PlantsService } from '../services/plats.services';
+import type { Plant } from '../model/plants.entity';
 
-interface Plant {
-  id: number;
-  name: string;
-  type: string;
-  icon: string;
-  humidity: number;
-  lastWatered: string;
-  status: 'healthy' | 'warning' | 'critical';
-}
+
 
 interface Filter {
   id: string;
@@ -23,15 +17,20 @@ interface Filter {
 const router = useRouter();
 const activeFilter = ref('all');
 const searchQuery = ref('');
+const plants = ref<Plant[]>([]);
+const plantsService = new PlantsService();
 
-const plants = ref<Plant[]>([
-  { id: 1, name: 'Monstera Deliciosa', type: 'Tropical', icon: '🌿', humidity: 72, lastWatered: '2 days ago', status: 'healthy' },
-  { id: 2, name: 'Snake Plant', type: 'Succulent', icon: '🪴', humidity: 45, lastWatered: '1 week ago', status: 'warning' },
-  { id: 3, name: 'Fiddle Leaf Fig', type: 'Tropical', icon: '🌱', humidity: 55, lastWatered: 'Today', status: 'healthy' },
-  { id: 4, name: 'Peace Lily', type: 'Flowering', icon: '🌺', humidity: 68, lastWatered: '3 days ago', status: 'healthy' },
-  { id: 5, name: 'Pothos', type: 'Vine', icon: '🍃', humidity: 25, lastWatered: '2 weeks ago', status: 'critical' },
-  { id: 6, name: 'Rubber Plant', type: 'Tropical', icon: '🌳', humidity: 65, lastWatered: '4 days ago', status: 'healthy' },
-]);
+// Reemplaza con el userId real si lo tienes en el store o props
+const userId = 3;
+
+onMounted(async () => {
+  try {
+    const response = await plantsService.getPlantsByUser(userId);
+    plants.value = response.data;
+  } catch (error) {
+    console.error('Error al obtener plantas:', error);
+  }
+});
 
 const filters = computed<Filter[]>(() => [
   { id: 'all', label: 'All Plants', count: plants.value.length },
@@ -120,7 +119,7 @@ const handleAddFirstPlant = () => {
           @click="navigateToPlant(plant.id)"
       >
         <div class="plant-image">
-          <span class="plant-emoji">{{ plant.icon }}</span>
+          <img class="plant-img" :src="plant.imgUrl" alt="Imagen de la planta" />
           <div :class="['plant-status', plant.status]">
             <span class="status-dot"></span>
             <span>{{ getStatusLabel(plant.status) }}</span>
@@ -301,12 +300,21 @@ const handleAddFirstPlant = () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 64px;
   position: relative;
+  overflow: hidden;
 }
 
-.plant-emoji {
-  font-size: 64px;
+.plant-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  max-width: 180px;
+  max-height: 180px;
+  display: block;
+  margin: auto;
+  border-radius: 16px;
+  box-shadow: var(--shadow-sm);
+  background: transparent;
 }
 
 .plant-status {
@@ -443,6 +451,14 @@ const handleAddFirstPlant = () => {
 
   .plants-grid {
     grid-template-columns: 1fr;
+  }
+
+  .plant-image {
+    height: 140px;
+  }
+  .plant-img {
+    max-width: 120px;
+    max-height: 120px;
   }
 }
 </style>
