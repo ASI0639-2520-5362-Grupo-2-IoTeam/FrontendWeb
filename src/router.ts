@@ -38,6 +38,11 @@ const router = createRouter({
             meta: { requiresAuth: true }
         },
         {
+            path: '/plants/new',
+            component: () => import('./plantcare/Plants/components/PlantsForm.vue'),
+            meta: { requiresAuth: true }
+        },
+        {
             path: '/plants/:id',
             name: 'PlantDetail',
             component: () => import('./plantcare/PlantDetail/component/PlantDetail.vue'),

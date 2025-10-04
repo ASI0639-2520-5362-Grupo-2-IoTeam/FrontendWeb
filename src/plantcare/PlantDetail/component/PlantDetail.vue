@@ -86,8 +86,17 @@ const handleEdit = () => {
   console.log('Edit plant');
 };
 
-const handleDelete = () => {
-  console.log('Delete plant');
+const handleDelete = async () => {
+  const confirmed = window.confirm('¿Estás seguro de que deseas borrar esta planta? Esta acción no se puede deshacer.');
+  if (!confirmed) return;
+  try {
+    await plantsService.deletePlant(plantId);
+    window.alert('Planta eliminada correctamente.');
+    router.push('/plants'); // Redirige a la lista de plantas
+  } catch (err) {
+    console.error('Error al borrar la planta:', err);
+    window.alert('Hubo un error al borrar la planta.');
+  }
 };
 
 const handleWaterNow = () => {

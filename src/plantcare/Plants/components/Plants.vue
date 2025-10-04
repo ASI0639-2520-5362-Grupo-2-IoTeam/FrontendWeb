@@ -5,6 +5,7 @@ import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
 import { PlantsService } from '../services/plats.services';
 import type { Plant } from '../model/plants.entity';
+import { useAuthenticationStore } from '../../../IAM/services/Authentication.Store.ts';
 
 
 
@@ -20,12 +21,22 @@ const searchQuery = ref('');
 const plants = ref<Plant[]>([]);
 const plantsService = new PlantsService();
 
-// Reemplaza con el userId real si lo tienes en el store o props
-const userId = 3;
+const authStore = useAuthenticationStore();
+// Ensure the authStore is initialized from localStorage if needed
+if (!authStore.isSignedIn) {
+  try { authStore.initialize(); } catch (e) { /* ignore */ }
+}
+
+// Use the authenticated user's id; fallback to null
+const userId = computed(() => authStore.id as number | null);
 
 onMounted(async () => {
   try {
-    const response = await plantsService.getPlantsByUser(userId);
+    if (userId.value == null) {
+      // No hay usuario, redirige al login (guard route debería proteger esto, pero por seguridad)
+      return router.push({ name: 'SignIn' });
+    }
+    const response = await plantsService.getPlantsByUser(userId.value);
     plants.value = response.data;
   } catch (error) {
     console.error('Error al obtener plantas:', error);
@@ -55,12 +66,15 @@ const filteredPlants = computed(() => {
   return result;
 });
 
-const getStatusLabel = (status: string): string => {
+const getStatusLabel = (status: any): string => {
+  if (typeof status === 'object' && status !== null && 'label' in status) {
+    return status.label;
+  }
   switch (status) {
     case 'healthy': return 'Healthy';
     case 'warning': return 'Warning';
     case 'critical': return 'Critical';
-    default: return status;
+    default: return String(status);
   }
 };
 
@@ -69,11 +83,11 @@ const navigateToPlant = (plantId: number) => {
 };
 
 const handleAddPlant = () => {
-  console.log('Add new plant');
+  router.push('/plants/new');
 };
 
 const handleAddFirstPlant = () => {
-  console.log('Add first plant');
+  router.push('/plants/new');
 };
 </script>
 
