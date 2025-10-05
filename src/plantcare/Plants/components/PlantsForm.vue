@@ -50,7 +50,7 @@
           placeholder="Select status"
         >
           <template #option="{ option }">
-            <div :class="['dropdown-status-option', option.value]">
+            <div :class="['dropdown-status-option']" :data-value="option.value">
               <span class="status-dot-preview"></span>
               <span>{{ option.label }}</span>
             </div>
@@ -62,6 +62,8 @@
         <label for="bio">Bio</label>
         <Textarea id="bio" v-model="form.bio" rows="4" placeholder="Describe your plant..." />
       </div>
+
+      <div v-if="serverError.message" class="server-error">{{ serverError.message }}</div>
 
       <div class="actions">
         <Button type="button" class="btn-ghost" @click="onReset">Reset</Button>
@@ -91,7 +93,8 @@ if (!authStore.isSignedIn) {
   try { authStore.initialize(); } catch (e) { /* ignore */ }
 }
 
-const userId = () => authStore.id as number | null;
+// userId is a UUID string in localStorage
+const userId = () => authStore.uuid as string | null;
 
 const statusOptions = [
   { label: 'Healthy', value: 'healthy' },
@@ -113,6 +116,7 @@ const emptyState = (): Partial<Plant> => ({
 
 const form = reactive<Partial<Plant>>({ ...emptyState() });
 const errors = reactive<Record<string, string>>({});
+const serverError = reactive<{ message: string | null }>({ message: null });
 
 const validate = () => {
   errors.name = form.name && form.name.trim() ? '' : 'Name is required';
@@ -130,6 +134,7 @@ const validate = () => {
 };
 
 const onSubmit = async () => {
+  serverError.message = null;
   if (!validate()) return;
 
   // Build payload matching the Plant interface; id will be assigned by the backend (json-server)
@@ -139,25 +144,35 @@ const onSubmit = async () => {
   }
 
   const payload: Omit<Plant, 'id'> = {
-    userId: userId() ?? 0, // Si userId es null, asigna 0 (o puedes mostrar un error)
+    userId: userId() ?? '', // userId debe ser UUID string y el backend lo requiere en el body
     name: String(form.name || '').trim(),
     type: String(form.type || '').trim(),
     imgUrl: String(form.imgUrl || '').trim() || 'https://via.placeholder.com/180',
-    humidity: Number(form.humidity || 0),
-    lastWatered: String(form.lastWatered || '').trim() || 'Unknown',
-    nextWatering: String(form.nextWatering || '').trim() || 'Unknown',
-    status: (form.status as Plant['status']) || 'healthy',
+    humidity: Number(form.humidity ?? 50),
+    lastWatered: String(form.lastWatered || '').trim(),
+    nextWatering: String(form.nextWatering || '').trim(),
+    status: String(form.status || 'healthy') as Plant['status'],
     bio: String(form.bio || '').trim(),
-    location: String(form.location || '').trim() || 'Unknown'
+    location: String(form.location || '').trim(),
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
   };
 
   try {
     await plantsService.createPlant(payload);
     // after success, navigate back to plants list or refresh
     router.push('/plants');
-  } catch (err) {
+  } catch (err: any) {
     console.error('Error creating plant:', err);
-    // you can show a toast here if you have one registered
+    // Mostrar mensaje del backend si existe
+    const backendMsg = err?.response?.data ?? err?.message ?? 'Unknown error';
+    try {
+      serverError.message = typeof backendMsg === 'string' ? backendMsg : JSON.stringify(backendMsg);
+    } catch (e) {
+      serverError.message = String(backendMsg);
+    }
+    // NO cerrar sesión automáticamente por 403 si es error CORS
+    // (el token es válido, solo falta configurar CORS en backend)
   }
 };
 
@@ -254,15 +269,16 @@ const onReset = () => {
   padding: 4px 0;
 }
 
-.dropdown-status-option.healthy {
+/* Reemplacé selectores por atributos data-value para que el linter los detecte como usados dinámicamente. */
+.dropdown-status-option[data-value="healthy"] {
   color: var(--status-healthy);
 }
 
-.dropdown-status-option.warning {
+.dropdown-status-option[data-value="warning"] {
   color: var(--status-warning);
 }
 
-.dropdown-status-option.critical {
+.dropdown-status-option[data-value="critical"] {
   color: var(--status-critical);
 }
 
@@ -271,6 +287,16 @@ const onReset = () => {
   height: 8px;
   border-radius: 50%;
   background: currentColor;
+}
+
+.server-error {
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: rgba(255,0,0,0.06);
+  border: 1px solid rgba(255,0,0,0.12);
+  color: var(--status-critical);
+  border-radius: 6px;
+  font-size: 13px;
 }
 
 @media (max-width: 600px) {

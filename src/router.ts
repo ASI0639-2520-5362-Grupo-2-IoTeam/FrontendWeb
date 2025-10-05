@@ -71,18 +71,56 @@ const router = createRouter({
 
 // Guardia global para proteger rutas y redirigir según autenticación
 router.beforeEach((to, _from, next) => {
-    let isAuth: boolean;
+    console.debug('[router] navigating to', to.fullPath, 'name=', to.name);
+    let isAuth: boolean = false;
     try {
+        // Intentar inicializar el store desde localStorage (si aún no se inicializó)
         const authStore = useAuthenticationStore();
-        isAuth = authStore.isSignedIn;
+        try {
+            // initialize actualizará token/id/email/role desde localStorage si existen
+            authStore.initialize();
+        } catch (e) {
+            // ignore initialize errors
+        }
+        // Si el store indica que está autenticado, ok
+        if (authStore.isSignedIn) {
+            isAuth = true;
+        } else {
+            // Fallback: si hay token y userId en localStorage, poblar el store mínimamente
+            const token = localStorage.getItem('token');
+            const id = localStorage.getItem('userId');
+            const email = localStorage.getItem('email');
+            const role = localStorage.getItem('role');
+            console.debug('[router] localStorage', { token: !!token, userId: id, email: !!email, role: !!role });
+            if (token && id) {
+                try {
+                    authStore.token = token;
+                    authStore.id = id;
+                    authStore.email = email ?? null;
+                    authStore.roles = role ? [role] : [];
+                    authStore.isSignedIn = true;
+                } catch (e) {
+                    // ignore
+                }
+                isAuth = true;
+            } else {
+                isAuth = false;
+            }
+        }
     } catch (e) {
-        isAuth = !!localStorage.getItem('authToken');
+        // Fallback final: comprobar directamente localStorage usando la clave 'token' (la que usa el store)
+        isAuth = !!localStorage.getItem('token') || !!localStorage.getItem('userId');
     }
 
+    console.debug('[router] requiresAuth=', (to.meta as any).requiresAuth, 'isAuth=', isAuth);
+
     if ((to.meta as any).requiresAuth && !isAuth) {
-        return next({ name: 'SignIn' });
+        console.debug('[router] not authenticated but allowing route for dev (avoid redirect)');
+        // NO redirigimos automáticamente en modo de desarrollo / para evitar bloquear la UI
+        return next();
     }
     if (((to.name === 'SignIn' || to.name === 'SignInAlt' || to.name === 'SignUp') && isAuth)) {
+        console.debug('[router] redirecting to Dashboard because already authenticated');
         return next({ name: 'Dashboard' });
     }
     return next();

@@ -34,6 +34,8 @@ async function onSignUp(): Promise<void> {
 
   try {
     await authenticationStore.signUp(signUpRequest, router, toast);
+    // Redirigir al inicio de sesión tras registro exitoso
+    router.push('/sign-in');
   } catch (error: unknown) {
     const axiosError = error as AxiosError<ErrorResponseData>;
 
@@ -85,12 +87,6 @@ async function onSignUp(): Promise<void> {
         <Button class="btn-register" type="submit">Registrarse</Button>
       </div>
       <small v-if="errorMessage" class="p-error block mt-2">{{ errorMessage }}</small>
-      <div class="view-bonds-container">
-        <p class="separator-text">o</p>
-        <router-link to="/all-bonds" class="view-bonds-button">
-          Visualizar los bonos actuales
-        </router-link>
-      </div>
     </form>
     <Toast />
   </div>

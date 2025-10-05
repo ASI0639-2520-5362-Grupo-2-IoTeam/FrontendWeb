@@ -5,7 +5,9 @@ import type { AxiosInstance, InternalAxiosRequestConfig, AxiosResponse, AxiosErr
 import { authenticationInterceptor} from "../../IAM/services/Authentication.Interceptor.ts";
 
 
-const API_BASE_URL: string = import.meta.env.VITE_API_BASE_URL as string || 'http://localhost:3000';
+// Usar el proxy de Vite para evitar problemas CORS
+// El proxy reescribe /api a http://localhost:8090/api
+const API_BASE_URL: string = (import.meta.env.VITE_API_BASE_URL as string) || '/api';
 
 
 const http: AxiosInstance = axios.create({
@@ -50,6 +52,9 @@ http.interceptors.response.use(
 
         if (error.response) {
             console.error('Response Status:', error.response.status);
+            try {
+                console.error('Response Data:', error.response.data);
+            } catch (e) { /* ignore */ }
         }
 
         return Promise.reject(error);

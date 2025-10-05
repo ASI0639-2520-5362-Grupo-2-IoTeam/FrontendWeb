@@ -1,72 +1,71 @@
 import http from "../../shared/services/http-common.ts";
-
 import type { AxiosResponse } from 'axios';
 
-interface SignInRequest {
-    username: string;
+// Interfaces adaptadas a tu backend
+export interface SignUpRequest {
+    email: string;
+    password: string;
+    role: string; // "USER" por defecto
+}
+
+export interface SignInRequest {
+    email: string;
     password: string;
 }
 
-interface SignUpRequest extends SignInRequest {
-    roles: string[];
+export interface RegisterResponse {
+    id: string;
+    email: string;
+    role: string;
 }
 
-interface UserResponse {
-    id: number;
-    username: string;
-    roles: string[];
-    // Puedes añadir más campos que tu API devuelva aquí
-    // Por ejemplo: email, token, etc.
-}
-
-interface AuthSuccessResponse {
-    id: number;
-    username: string;
-    roles: string[];
+// El backend solo devuelve { token }
+export interface LoginResponse {
     token: string;
 }
 
+// Helper para decodificar JWT y extraer payload
+function decodeJWT(token: string): { sub: string; role: string; iat: number; exp: number } | null {
+    try {
+        const parts = token.split('.');
+        if (parts.length !== 3) return null;
+        const payload = JSON.parse(atob(parts[1]));
+        return payload;
+    } catch (e) {
+        console.error('Error decoding JWT:', e);
+        return null;
+    }
+}
+
 export class AuthenticationService {
-    async signIn(signInRequest: SignInRequest): Promise<AxiosResponse<AuthSuccessResponse>> {
-        // Consulta GET para buscar usuario por username y password
-        const response = await http.get<UserResponse[]>(`/users?username=${signInRequest.username}&password=${signInRequest.password}`);
-        const users = response.data;
-        if (users.length > 0) {
-            // Simulamos un token y devolvemos la estructura esperada
-            const user = users[0];
-            return {
-                ...response,
-                data: {
-                    id: user.id,
-                    username: user.username,
-                    roles: user.roles,
-                    token: 'fake-jwt-token-' + user.id
-                }
-            };
-        } else {
-            // Simulamos un error de autenticación
-            return Promise.reject({
-                response: {
-                    status: 401,
-                    data: { message: 'Credenciales inválidas' }
-                }
-            });
+    async signUp(signUpRequest: SignUpRequest): Promise<AxiosResponse<RegisterResponse>> {
+        // POST /api/auth/register (el baseURL ya incluye /api)
+        return http.post<RegisterResponse>(`/auth/register`, signUpRequest);
+    }
+
+    async signIn(signInRequest: SignInRequest): Promise<AxiosResponse<LoginResponse>> {
+        // POST /api/auth/login (el baseURL ya incluye /api)
+        const response = await http.post<LoginResponse>(`/auth/login`, signInRequest);
+
+        // Decodificar el JWT para extraer email y role
+        const token = response.data.token;
+        const payload = decodeJWT(token);
+
+        // Guardar el token en localStorage para el interceptor
+        if (token) {
+            localStorage.setItem('token', token);
         }
-    }
 
-    signUp(signUpRequest: SignUpRequest): Promise<AxiosResponse<UserResponse>> {
-        return http.post<UserResponse>(`/users`, {
-            username: signUpRequest.username,
-            password: signUpRequest.password,
-            roles: signUpRequest.roles
-        });
-    }
+        // No sobrescribir el id con el email, solo agregar email y role si faltan
+        if (payload) {
+            if (!(response.data as any).email) {
+                (response.data as any).email = payload.sub;
+            }
+            if (!(response.data as any).role) {
+                (response.data as any).role = payload.role;
+            }
+        }
 
-    getUserRoles(userId: number): Promise<AxiosResponse<UserResponse>> {
-        return http.get<UserResponse>(`/users/${userId}`);
-    }
-
-    getUserById(userId: number): Promise<AxiosResponse<UserResponse>> {
-        return http.get<UserResponse>(`/users/${userId}`);
+        return response as any;
     }
 }

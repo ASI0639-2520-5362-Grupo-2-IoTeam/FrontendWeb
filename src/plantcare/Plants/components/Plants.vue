@@ -27,21 +27,39 @@ if (!authStore.isSignedIn) {
   try { authStore.initialize(); } catch (e) { /* ignore */ }
 }
 
-// Use the authenticated user's id; fallback to null
-const userId = computed(() => authStore.id as number | null);
+// Usar el UUID del usuario autenticado
+const userUuid = computed(() => {
+  // prefer store value
+  const uuid = authStore.uuid;
+  if (uuid && uuid !== 'undefined') return uuid;
+  // fallback a localStorage
+  const ls = localStorage.getItem('userUuid');
+  if (ls && ls !== 'undefined') return ls;
+  return null;
+});
+
+console.debug('[Plants] setup start');
 
 onMounted(async () => {
+  console.debug('[Plants] onMounted start, authStore.uuid=', authStore.uuid, 'isSignedIn=', authStore.isSignedIn);
   try {
-    if (userId.value == null) {
-      // No hay usuario, redirige al login (guard route debería proteger esto, pero por seguridad)
-      return router.push({ name: 'SignIn' });
+    const uid = userUuid.value;
+    if (uid == null) {
+      plants.value = [];
+      console.debug('[Plants] no userUuid, showing empty state');
+      return;
     }
-    const response = await plantsService.getPlantsByUser(userId.value);
-    plants.value = response.data;
-  } catch (error) {
-    console.error('Error al obtener plantas:', error);
+    // Obtener plantas del usuario autenticado
+    const res = await plantsService.getPlantsByUser(uid);
+    plants.value = res.data;
+    console.debug('[Plants] plantas cargadas:', plants.value);
+  } catch (e) {
+    plants.value = [];
+    console.error('[Plants] error al cargar plantas:', e);
   }
 });
+
+console.debug('[Plants] setup end');
 
 const filters = computed<Filter[]>(() => [
   { id: 'all', label: 'All Plants', count: plants.value.length },
@@ -440,6 +458,7 @@ const handleAddFirstPlant = () => {
 .btn-primary:hover {
   background: #7ab531 !important;
 }
+
 
 @media (max-width: 768px) {
   .header {

@@ -2,6 +2,7 @@
 import { computed } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import Avatar from 'primevue/avatar';
+import { useAuthenticationStore } from '../../IAM/services/Authentication.Store.ts';
 
 interface SidebarProps {
   isOpen?: boolean;
@@ -17,12 +18,13 @@ const emit = defineEmits<{
 
 const router = useRouter();
 const route = useRoute();
+const authStore = useAuthenticationStore();
 
 const navItems = [
-  { path: '/', label: 'Dashboard', icon: '📊' },
-  { path: '/plants', label: 'Plants', icon: '🌱' },
-  { path: '/history', label: 'History', icon: '📅' },
-  { path: '/settings', label: 'Settings', icon: '⚙️' },
+  { path: '/dashboard', name: 'Dashboard', label: 'Dashboard', icon: '📊' },
+  { path: '/plants', name: 'Plants', label: 'Plants', icon: '🌱' },
+  { path: '/history', name: 'History', label: 'History', icon: '📅' },
+  { path: '/settings', name: 'Settings', label: 'Settings', icon: '⚙️' },
 ];
 
 const isActiveRoute = (path: string) => {
@@ -32,14 +34,45 @@ const isActiveRoute = (path: string) => {
   return route.path.startsWith(path);
 };
 
-const handleNavClick = (path: string) => {
-  router.push(path);
+const handleNavClick = (item: { path: string; name?: string }) => {
+  console.debug('[Sidebar] navigate to', item);
+  if (item.name) {
+    router.push({ name: item.name as any });
+  } else {
+    router.push(item.path);
+  }
   emit('close');
+};
+
+const handleLogout = () => {
+  try {
+    authStore.signOut();
+  } catch (e) { /* ignore */ }
+  localStorage.removeItem('token');
+  localStorage.removeItem('userId');
+  localStorage.removeItem('email');
+  localStorage.removeItem('role');
+  router.push({ name: 'SignIn' });
 };
 
 const sidebarClass = computed(() => ({
   'sidebar': true,
   'open': props.isOpen
+}));
+
+const userName = computed(() => {
+  // Preferiblemente obtén nombre desde el store si existe (no hay campo nombre, usamos email o id)
+  if (authStore.email) return authStore.email.split('@')[0];
+  if (authStore.id) return `User-${authStore.id.substring(0,6)}`;
+  return 'Guest';
+});
+
+const userEmail = computed(() => authStore.email ?? '—');
+
+const authStatusClass = computed(() => ({
+  'status-dot': true,
+  'online': authStore.isSignedIn,
+  'offline': !authStore.isSignedIn
 }));
 </script>
 
@@ -59,13 +92,15 @@ const sidebarClass = computed(() => ({
             :key="item.path"
             class="nav-item"
         >
-          <a
-              :class="['nav-link', { active: isActiveRoute(item.path) }]"
-              @click.prevent="handleNavClick(item.path)"
+          <router-link
+              :to="{ name: item.name }"
+              class="nav-link"
+              :class="{ active: isActiveRoute(item.path) }"
+              @click="emit('close')"
           >
             <span class="nav-icon">{{ item.icon }}</span>
             <span>{{ item.label }}</span>
-          </a>
+          </router-link>
         </li>
       </ul>
     </nav>
@@ -73,15 +108,18 @@ const sidebarClass = computed(() => ({
     <div class="footer">
       <div class="user-section">
         <Avatar
-            label="JD"
+            :label="(userName)"
             class="user-avatar"
             shape="circle"
         />
         <div class="user-info">
-          <div class="user-name">John Doe</div>
-          <div class="user-email">john@plantcare.com</div>
+          <div class="user-name">{{ userName }}</div>
+          <div class="user-email">{{ userEmail }}</div>
+          <div class="user-id">ID: {{ authStore.id ?? '—' }}</div>
         </div>
+        <div :class="authStatusClass" :title="authStore.isSignedIn ? 'Signed in' : 'Signed out'"></div>
       </div>
+      <button class="logout-btn" @click="handleLogout">Cerrar sesión</button>
     </div>
   </aside>
 </template>
@@ -224,6 +262,40 @@ const sidebarClass = computed(() => ({
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.user-id {
+  font-size: 11px;
+  color: var(--text-light);
+  margin-top: 4px;
+}
+
+.status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-left: 8px;
+}
+
+.status-dot.online { background: var(--status-healthy); }
+.status-dot.offline { background: var(--status-warning); }
+
+.logout-btn {
+  width: 100%;
+  margin-top: var(--spacing-md);
+  padding: 10px 0;
+  background: var(--status-critical);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.logout-btn:hover {
+  background: #c0392b;
 }
 
 /* Mobile Responsive */

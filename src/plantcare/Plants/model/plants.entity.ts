@@ -2,8 +2,8 @@ export interface Plant {
     /** Identificador único de la planta. */
     id: number;
 
-    /** El ID del usuario al que pertenece esta planta (relación). */
-    userId: number;
+    /** El ID del usuario al que pertenece esta planta (UUID string). */
+    userId: string;
 
     /** Nombre común de la planta (ej: "Monstera Deliciosa"). */
     name: string;
@@ -17,13 +17,13 @@ export interface Plant {
     /** Nivel de humedad registrado (en porcentaje). */
     humidity: number;
 
-    /** Texto que indica la última vez que fue regada. */
+    /** Texto que indica la última vez que fue regada (ISO string o texto legible). */
     lastWatered: string;
 
-    /** Texto que indica cuándo debe ser regada nuevamente. */
+    /** Texto que indica cuándo debe ser regada nuevamente (ISO string o texto legible). */
     nextWatering: string;
 
-    /** Estado actual de salud. */
+    /** Estado actual de salud en minúsculas para facilitar uso en la UI. */
     status: 'healthy' | 'warning' | 'critical';
 
     /** Descripción biográfica de la planta. */
@@ -31,4 +31,8 @@ export interface Plant {
 
     /** Ubicación física de la planta. */
     location: string;
+
+    /** Fechas del backend (opcional). */
+    createdAt?: string;
+    updatedAt?: string;
 }

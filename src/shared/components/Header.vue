@@ -4,6 +4,7 @@ import Button from 'primevue/button';
 import Badge from 'primevue/badge';
 import Avatar from 'primevue/avatar';
 import { useRouter } from 'vue-router';
+import { useAuthenticationStore } from '../../IAM/services/Authentication.Store.ts';
 
 interface HeaderProps {
   title?: string;
@@ -30,6 +31,8 @@ const handleMenuClick = () => {
 };
 
 const router = useRouter();
+const authStore = useAuthenticationStore();
+
 const goToProfile = () => {
   router.push('/profile');
 };
@@ -189,6 +192,7 @@ const goToProfile = () => {
 .header-avatar {
   cursor: pointer;
 }
+
 
 @media (max-width: 768px) {
   .menu-button {
