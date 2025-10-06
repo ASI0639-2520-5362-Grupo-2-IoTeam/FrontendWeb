@@ -18,7 +18,7 @@
 <script setup lang="ts">
 import Header from "./shared/components/Header.vue";
 import Sidebar from "./shared/components/Sidebar.vue";
-import { useRoute, useRouter } from 'vue-router';
+import { useRoute} from 'vue-router';
 import { computed } from 'vue';
 
 const handleMenu = () => {
@@ -26,7 +26,7 @@ const handleMenu = () => {
 };
 
 const route = useRoute();
-const router = useRouter();
+
 const showLayout = computed(() => {
   // Mostrar layout solo si la ruta NO tiene meta.hideLayout === true
   return !route.meta?.hideLayout;

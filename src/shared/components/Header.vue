@@ -4,15 +4,6 @@ import Button from 'primevue/button';
 import Badge from 'primevue/badge';
 import Avatar from 'primevue/avatar';
 import { useRouter } from 'vue-router';
-import { useAuthenticationStore } from '../../IAM/services/Authentication.Store.ts';
-
-interface HeaderProps {
-  title?: string;
-}
-
-const props = withDefaults(defineProps<HeaderProps>(), {
-  title: 'Dashboard'
-});
 
 const emit = defineEmits<{
   menuClick: [];
@@ -31,7 +22,7 @@ const handleMenuClick = () => {
 };
 
 const router = useRouter();
-const authStore = useAuthenticationStore();
+
 
 const goToProfile = () => {
   router.push('/profile');
