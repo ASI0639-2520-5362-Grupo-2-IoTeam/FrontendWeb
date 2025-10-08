@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, onMounted, computed } from 'vue';
+import { useAuthenticationStore } from '../../../IAM/services/Authentication.Store';
 import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
 import Textarea from 'primevue/textarea';
@@ -32,6 +33,14 @@ const recentAchievements = ref([
 ]);
 
 const isEditing = ref(false);
+const loading = ref(false);
+
+// Obtener el store de autenticación
+const authStore = useAuthenticationStore();
+
+// Variables reactivas para los datos del perfil
+const profileId = ref<number | null>(null);
+const avatarPreview = ref<string | null>(null);
 
 const handleEdit = () => {
   isEditing.value = true;
@@ -39,13 +48,7 @@ const handleEdit = () => {
 
 const handleSave = () => {
   isEditing.value = false;
-  console.log('Profile saved:', {
-    fullName: fullName.value,
-    email: email.value,
-    phone: phone.value,
-    bio: bio.value,
-    location: location.value,
-  });
+  // Aquí podrías agregar lógica para guardar los cambios en la API
 };
 
 const handleCancel = () => {
@@ -53,8 +56,81 @@ const handleCancel = () => {
 };
 
 const handleChangeAvatar = () => {
-  console.log('Change avatar');
+  // Aquí podrías agregar lógica para cambiar el avatar
 };
+
+// Cargar perfil del usuario logueado
+const loadUserProfile = async () => {
+  // Obtener el ID del usuario logueado desde el store
+  const loggedUserId = authStore.uuid;
+  
+  if (!loggedUserId) {
+    // Intentar obtener datos de localStorage directamente como fallback
+    const userUuid = localStorage.getItem('userUuid');
+    
+    if (userUuid) {
+      await loadProfileFromAPI(userUuid);
+      return;
+    }
+    
+    return;
+  }
+
+  await loadProfileFromAPI(loggedUserId);
+};
+
+// Función separada para cargar desde la API
+const loadProfileFromAPI = async (userId: string) => {
+  loading.value = true;
+
+  try {
+    const response = await fetch(`https://fakeapiplant.vercel.app/profiles?userId=${userId}`);
+    
+    if (!response.ok) {
+      return;
+    }
+
+    const profiles = await response.json();
+    
+    if (!Array.isArray(profiles) || profiles.length === 0) {
+      return;
+    }
+
+    const userProfile = profiles[0];
+
+    // Actualizar los datos del perfil
+    profileId.value = userProfile.id;
+    fullName.value = userProfile.displayName || 'Usuario';
+    email.value = userProfile.email || authStore.email || '';
+    phone.value = userProfile.phone || '';
+    bio.value = userProfile.bio || '';
+    location.value = userProfile.location || '';
+    joinDate.value = userProfile.joinDate || 'Reciente';
+    
+    if (userProfile.avatarUrl) {
+      avatarPreview.value = userProfile.avatarUrl;
+    }
+
+  } catch (error) {
+    // Error silencioso
+  } finally {
+    loading.value = false;
+  }
+};
+
+// Cargar el perfil cuando el componente se monta
+onMounted(async () => {
+  // Inicializar el store de autenticación si no está inicializado
+  if (!authStore.isInitialized) {
+    authStore.initialize();
+  }
+  
+  // Esperar un poco para que se complete la inicialización
+  await new Promise(resolve => setTimeout(resolve, 100));
+  
+  // Cargar el perfil del usuario
+  await loadUserProfile();
+});
 </script>
 
 <template>
@@ -65,7 +141,8 @@ const handleChangeAvatar = () => {
         <div class="profile-header">
           <div class="avatar-section">
             <Avatar
-                label="JD"
+                :image="avatarPreview"
+                :label="!avatarPreview ? fullName.split(' ').map(n => n[0]).join('') : undefined"
                 class="profile-avatar"
                 shape="circle"
                 size="xlarge"
