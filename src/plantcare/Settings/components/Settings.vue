@@ -42,41 +42,6 @@ const handleAddDevice = () => {
   <div class="settings">
     <h1 class="title">Settings</h1>
 
-    <!-- Profile Settings -->
-    <div class="section">
-      <h2 class="section-title">Profile Settings</h2>
-      <div class="card">
-        <div class="form-group">
-          <label class="label">Full Name</label>
-          <InputText
-              v-model="fullName"
-              class="input"
-          />
-        </div>
-        <div class="form-group">
-          <label class="label">Email Address</label>
-          <InputText
-              v-model="email"
-              type="email"
-              class="input"
-          />
-        </div>
-        <div class="form-group">
-          <label class="label">Phone Number</label>
-          <InputText
-              v-model="phone"
-              type="tel"
-              class="input"
-          />
-        </div>
-        <Button
-            label="Save Changes"
-            class="btn-primary"
-            @click="handleSaveProfile"
-        />
-      </div>
-    </div>
-
     <!-- Subscription Plan -->
     <div class="section">
       <h2 class="section-title">Subscription Plan</h2>
