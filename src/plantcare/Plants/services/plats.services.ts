@@ -1,11 +1,11 @@
-import http from "../../../shared/services/http-common.ts";
+import axios from "axios";
 import type { Plant } from "../model/plants.entity";
 
 
 export class PlantsService {
 
-    // baseURL en http-common.ts ya apunta a '/api', por eso aquí usamos '/v1/plants'
-    resourceEndpoint = '/v1/plants';
+    // Cambiamos la baseURL a la de la fake API
+    resourceEndpoint = 'https://fakeapiplant.vercel.app/plants';
 
     private normalizeStatus(s?: string): Plant['status'] {
         if (!s) return 'healthy';
@@ -42,53 +42,42 @@ export class PlantsService {
         if (!userId || userId === 'undefined' || userId === 'null') {
             throw new Error('Invalid userId provided to getPlantsByUser');
         }
-        // GET /api/v1/plants/user/{userId}?t=timestamp para evitar caché
-        const timestamp = Date.now();
-        const res = await http.get<any[]>(`${this.resourceEndpoint}/user/${userId}?t=${timestamp}`);
+        // GET https://fakeapiplant.vercel.app/plants?userId={userId}
+        const res = await axios.get<any[]>(`${this.resourceEndpoint}?userId=${encodeURIComponent(userId)}`);
         const mapped = (res.data || []).map(r => this.mapBackendToPlant(r));
         return { ...res, data: mapped };
     }
 
 
     async getPlantById(plantId: number | string) {
-        // GET /api/v1/plants/1
-        const res = await http.get<any>(`${this.resourceEndpoint}/${plantId}`);
+        // GET https://fakeapiplant.vercel.app/plants/{plantId}
+        const res = await axios.get<any>(`${this.resourceEndpoint}/${plantId}`);
         return { ...res, data: this.mapBackendToPlant(res.data) };
     }
 
 
     async createPlant(plantResource: Omit<Plant, 'id'>) {
-        // POST /api/v1/plants
-        // El backend Spring espera el userId en el body
+        // POST https://fakeapiplant.vercel.app/plants
         const body = {
             ...plantResource,
             status: (plantResource.status || 'healthy').toUpperCase(),
             humidity: Number(plantResource.humidity || 0)
         };
-        // Debug: mostrar payload y token preview
-        try {
-            const token = localStorage.getItem('token');
-            const tokenPreview = token ? `${token.substring(0,6)}...${token.substring(token.length-6)}` : 'no-token';
-            console.debug('[PlantsService] createPlant body (con userId)=', body, 'token=', tokenPreview);
-        } catch (e) {
-            // ignore
-        }
-
-        const res = await http.post<any>(`${this.resourceEndpoint}`, body);
+        const res = await axios.post<any>(`${this.resourceEndpoint}`, body);
         return { ...res, data: this.mapBackendToPlant(res.data) };
     }
 
 
     async updatePlant(plantId: number | string, plantResource: Plant) {
-        // PUT /api/v1/plants/1
+        // PUT https://fakeapiplant.vercel.app/plants/{plantId}
         const body = { ...plantResource, status: (plantResource.status || 'healthy').toUpperCase() };
-        const res = await http.put<any>(`${this.resourceEndpoint}/${plantId}`, body);
+        const res = await axios.put<any>(`${this.resourceEndpoint}/${plantId}`, body);
         return { ...res, data: this.mapBackendToPlant(res.data) };
     }
 
 
     async deletePlant(plantId: number | string) {
-        // DELETE /api/v1/plants/1
-        return http.delete(`${this.resourceEndpoint}/${plantId}`);
+        // DELETE https://fakeapiplant.vercel.app/plants/{plantId}
+        return axios.delete(`${this.resourceEndpoint}/${plantId}`);
     }
 }

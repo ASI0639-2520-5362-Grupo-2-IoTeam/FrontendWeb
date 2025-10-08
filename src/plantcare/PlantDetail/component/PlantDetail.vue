@@ -102,6 +102,17 @@ const handleDelete = async () => {
 const handleWaterNow = () => {
   console.log('Water now');
 };
+
+function formatDate(dateStr: string): string {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return dateStr;
+  // Ejemplo: 7 oct 2025, 10:00
+  return d.toLocaleString('es-PE', {
+    year: 'numeric', month: 'short', day: 'numeric',
+    hour: '2-digit', minute: '2-digit', hour12: false
+  });
+}
 </script>
 
 <template>
@@ -170,11 +181,11 @@ const handleWaterNow = () => {
               <div class="stat-label">Current Humidity</div>
             </div>
             <div class="stat-box">
-              <div class="stat-value">{{ plant.lastWatered }}</div>
+              <div class="stat-value">{{ formatDate(plant.lastWatered) }}</div>
               <div class="stat-label">Last Watered</div>
             </div>
             <div class="stat-box">
-              <div class="stat-value">{{ plant.nextWatering }}</div>
+              <div class="stat-value">{{ formatDate(plant.nextWatering) }}</div>
               <div class="stat-label">Next Watering</div>
             </div>
           </div>

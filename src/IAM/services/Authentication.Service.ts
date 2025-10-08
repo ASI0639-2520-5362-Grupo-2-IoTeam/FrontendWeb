@@ -1,3 +1,4 @@
+import axios from "axios";
 import http from "../../shared/services/http-common.ts";
 import type { AxiosResponse } from 'axios';
 
@@ -22,19 +23,9 @@ export interface RegisterResponse {
 // El backend solo devuelve { token }
 export interface LoginResponse {
     token: string;
-}
-
-// Helper para decodificar JWT y extraer payload
-function decodeJWT(token: string): { sub: string; role: string; iat: number; exp: number } | null {
-    try {
-        const parts = token.split('.');
-        if (parts.length !== 3) return null;
-        const payload = JSON.parse(atob(parts[1]));
-        return payload;
-    } catch (e) {
-        console.error('Error decoding JWT:', e);
-        return null;
-    }
+    uuid: string;
+    email: string;
+    roles: string[];
 }
 
 export class AuthenticationService {
@@ -44,28 +35,24 @@ export class AuthenticationService {
     }
 
     async signIn(signInRequest: SignInRequest): Promise<AxiosResponse<LoginResponse>> {
-        // POST /api/auth/login (el baseURL ya incluye /api)
-        const response = await http.post<LoginResponse>(`/auth/login`, signInRequest);
-
-        // Decodificar el JWT para extraer email y role
-        const token = response.data.token;
-        const payload = decodeJWT(token);
-
-        // Guardar el token en localStorage para el interceptor
-        if (token) {
-            localStorage.setItem('token', token);
+        // Usar la fake API para buscar el usuario (NO usar http-common, usar axios directo)
+        const { email, password } = signInRequest;
+        const response = await axios.get<any[]>(`https://fakeapiplant.vercel.app/users?useremail=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`);
+        const users = response.data;
+        if (users.length === 0) {
+            // Simular error de login
+            throw { response: { data: { message: 'Credenciales inválidas' } } };
         }
-
-        // No sobrescribir el id con el email, solo agregar email y role si faltan
-        if (payload) {
-            if (!(response.data as any).email) {
-                (response.data as any).email = payload.sub;
+        const user = users[0];
+        // Simular un token JWT (solo para frontend)
+        const fakeToken = btoa(`${user.useremail}:${user.roles.join(',')}`);
+        return {
+            data: {
+                token: fakeToken,
+                uuid: user.id,
+                email: user.useremail,
+                roles: user.roles
             }
-            if (!(response.data as any).role) {
-                (response.data as any).role = payload.role;
-            }
-        }
-
-        return response as any;
+        } as AxiosResponse<LoginResponse>;
     }
 }

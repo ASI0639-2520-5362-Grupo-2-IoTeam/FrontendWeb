@@ -102,23 +102,17 @@ export const useAuthenticationStore = defineStore("authentication", {
         async signIn(payload: SignInRequest, router: Router, toast: ToastObject): Promise<void> {
             try {
                 const response = await new AuthenticationService().signIn(payload);
-                // El backend debe devolver el UUID real en 'id'
-                const { token, uuid, email, role } = response.data as any;
-                // Log de depuración para verificar el id recibido
-                console.debug('[AuthStore] signIn response uuid:', uuid);
-                if (!uuid || uuid === 'undefined' || uuid === 'null') {
-                    console.error('[AuthStore] ERROR: El backend no devolvió el UUID en el campo uuid.');
-                }
+                // Adaptado a la fake API: uuid, email, roles
+                const { token, uuid, email, roles } = response.data as any;
                 this.uuid = uuid || null;
                 this.email = email;
                 this.token = token;
                 this.isSignedIn = true;
-                this.roles = [role];
+                this.roles = roles || [];
                 localStorage.setItem('token', token);
-                localStorage.setItem('userUuid', uuid || ''); // Guardar el UUID real
+                localStorage.setItem('userUuid', uuid || '');
                 localStorage.setItem('email', email);
-                localStorage.setItem('role', role);
-                console.debug('[AuthStore] userUuid guardado en localStorage:', localStorage.getItem('userUuid'));
+                localStorage.setItem('role', roles ? roles.join(',') : '');
                 toast.add({ severity: "success", summary: "Inicio de sesión exitoso", life: 2000 });
                 router.push({ name: "Dashboard" });
             } catch (error) {

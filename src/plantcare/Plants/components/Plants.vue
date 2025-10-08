@@ -107,6 +107,17 @@ const handleAddPlant = () => {
 const handleAddFirstPlant = () => {
   router.push('/plants/new');
 };
+
+function formatDate(dateStr: string): string {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return dateStr;
+  // Ejemplo: 7 oct 2025, 10:00
+  return d.toLocaleString('es-PE', {
+    year: 'numeric', month: 'short', day: 'numeric',
+    hour: '2-digit', minute: '2-digit', hour12: false
+  });
+}
 </script>
 
 <template>
@@ -167,7 +178,7 @@ const handleAddFirstPlant = () => {
             </div>
             <div class="stat-item">
               <span class="stat-label">Last Watered</span>
-              <span class="stat-value">{{ plant.lastWatered }}</span>
+              <span class="stat-value">{{ formatDate(plant.lastWatered) }}</span>
             </div>
           </div>
         </div>

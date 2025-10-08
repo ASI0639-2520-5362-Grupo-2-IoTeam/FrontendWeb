@@ -33,12 +33,18 @@
 
       <div class="field">
         <label for="lastWatered">Last Watered</label>
-        <InputText id="lastWatered" v-model="form.lastWatered" placeholder="e.g. Today, 2 days ago" />
+        <InputText id="lastWatered" v-model="form.lastWatered" placeholder="YYYY-MM-DDTHH:mm:ssZ" />
+        <small v-if="form.lastWatered" class="date-preview">
+          {{ formatDate(form.lastWatered) }}
+        </small>
       </div>
 
       <div class="field">
         <label for="nextWatering">Next Watering</label>
-        <InputText id="nextWatering" v-model="form.nextWatering" placeholder="e.g. In 3 days" />
+        <InputText id="nextWatering" v-model="form.nextWatering" placeholder="YYYY-MM-DDTHH:mm:ssZ" />
+        <small v-if="form.nextWatering" class="date-preview">
+          {{ formatDate(form.nextWatering) }}
+        </small>
       </div>
 
       <div class="field">
@@ -54,6 +60,13 @@
               <span class="status-dot-preview"></span>
               <span>{{ option.label }}</span>
             </div>
+          </template>
+          <template #value="{ value, placeholder }">
+            <span v-if="value" :class="['dropdown-status-option', 'dropdown-status-selected']" :data-value="value">
+              <span class="status-dot-preview"></span>
+              <span>{{ statusOptions.find(opt => opt.value === value)?.label }}</span>
+            </span>
+            <span v-else class="dropdown-placeholder">{{ placeholder }}</span>
           </template>
         </Dropdown>
       </div>
@@ -179,6 +192,17 @@ const onSubmit = async () => {
 const onReset = () => {
   Object.assign(form, emptyState());
 };
+
+function formatDate(dateStr: string): string {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return dateStr;
+  // Ejemplo: 7 oct 2025, 10:00
+  return d.toLocaleString('es-PE', {
+    year: 'numeric', month: 'short', day: 'numeric',
+    hour: '2-digit', minute: '2-digit', hour12: false
+  });
+}
 </script>
 
 <style scoped>
@@ -263,30 +287,34 @@ const onReset = () => {
 .dropdown-status-option {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-semibold);
   padding: 4px 0;
 }
-
-/* Reemplacé selectores por atributos data-value para que el linter los detecte como usados dinámicamente. */
-.dropdown-status-option[data-value="healthy"] {
-  color: var(--status-healthy);
+.dropdown-status-selected {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  padding: 0;
 }
-
-.dropdown-status-option[data-value="warning"] {
-  color: var(--status-warning);
+.dropdown-status-option[data-value="healthy"] .status-dot-preview {
+  background: var(--status-healthy, #4caf50);
 }
-
-.dropdown-status-option[data-value="critical"] {
-  color: var(--status-critical);
+.dropdown-status-option[data-value="warning"] .status-dot-preview {
+  background: var(--status-warning, #ff9800);
 }
-
+.dropdown-status-option[data-value="critical"] .status-dot-preview {
+  background: var(--status-critical, #f44336);
+}
 .status-dot-preview {
-  width: 8px;
-  height: 8px;
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
-  background: currentColor;
+  display: inline-block;
+}
+.dropdown-placeholder {
+  color: #aaa;
+  font-style: italic;
 }
 
 .server-error {
@@ -297,6 +325,14 @@ const onReset = () => {
   color: var(--status-critical);
   border-radius: 6px;
   font-size: 13px;
+}
+
+.date-preview {
+  color: #4caf50;
+  font-size: 12px;
+  margin-top: 2px;
+  display: block;
+  font-style: italic;
 }
 
 @media (max-width: 600px) {

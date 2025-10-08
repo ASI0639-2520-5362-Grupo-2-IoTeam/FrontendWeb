@@ -10,7 +10,7 @@ import type { AxiosError } from 'axios';
 import logo from '../../assets/vue.svg';
 
 // --- State (ref) ---
-const username = ref<string>("");
+const email = ref<string>(""); // Cambiado de username a email
 const password = ref<string>("");
 const submitted = ref<boolean>(false);
 const errorMessage = ref<string>("");
@@ -30,8 +30,8 @@ async function onSignIn(): Promise<void> {
   submitted.value = true;
   errorMessage.value = "";
 
-  if (username.value && password.value) {
-    let signInRequest = new SignInRequest(username.value, password.value);
+  if (email.value && password.value) { // Cambiado de username a email
+    let signInRequest = new SignInRequest(email.value, password.value); // Cambiado de username a email
 
     try {
       // Pasamos las dependencias (router y toast) al store
@@ -44,7 +44,7 @@ async function onSignIn(): Promise<void> {
           axiosError.response?.data?.message || "Error al iniciar sesión. Inténtalo de nuevo.";
     }
   } else {
-    errorMessage.value = "Usuario y contraseña son requeridos.";
+    errorMessage.value = "Correo electrónico y contraseña son requeridos."; // Actualizado el mensaje
   }
 }
 </script>
@@ -59,10 +59,10 @@ async function onSignIn(): Promise<void> {
       <div class="p-fluid">
         <div class="field mt-5">
           <div class="p-float-label">
-            <InputText id="username" v-model="username" :class="{'p-invalid': submitted && !username}"/>
-            <label for="username">Usuario</label>
+            <InputText id="email" v-model="email" :class="{'p-invalid': submitted && !email}"/>
+            <label for="email">Correo electrónico</label>
           </div>
-          <small v-if="submitted && !username" class="p-invalid">Usuario es requerido.</small>
+          <small v-if="submitted && !email" class="p-invalid">Correo electrónico es requerido.</small>
         </div>
         <div class="field mt-5">
           <div class="p-float-label">
