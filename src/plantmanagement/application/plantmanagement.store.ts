@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import type { Plant } from '../domain/model/plants.entity';
+import { PlantsService } from '../infrastructure/plats.services';
 
 interface PlantManagementState {
   plants: Plant[];
@@ -14,13 +15,13 @@ export const usePlantManagementStore = defineStore('plantManagement', {
     error: null,
   }),
   actions: {
-    async fetchPlants() {
+    async fetchPlants(userId: string) {
       this.loading = true;
       this.error = null;
       try {
-
-        const data: Plant[] = [];
-        this.plants = data;
+        const plantService = new PlantsService();
+        const response = await plantService.getPlantsByUser(userId);
+        this.plants = response.data;
       } catch (e: any) {
         this.error = e.message || 'Error al cargar las plantas';
       } finally {
@@ -42,4 +43,3 @@ export const usePlantManagementStore = defineStore('plantManagement', {
     }
   }
 });
-

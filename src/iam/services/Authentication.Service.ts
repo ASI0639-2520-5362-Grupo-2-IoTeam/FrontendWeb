@@ -1,5 +1,5 @@
-import axios from "axios";
 import type { AxiosResponse } from 'axios';
+import { BaseApi, ENDPOINTS } from '../../shared/infrastructure/base-endpoint';
 
 // Interfaces adaptadas a tu backend
 export interface SignUpRequest {
@@ -28,19 +28,24 @@ export interface LoginResponse {
 }
 
 export class AuthenticationService {
+    private baseApi: BaseApi;
+
+    constructor() {
+        this.baseApi = new BaseApi();
+    }
+
     async signUp(signUpRequest: SignUpRequest): Promise<AxiosResponse<RegisterResponse>> {
-        // POST /api/auth/register (el baseURL ya incluye /api)
-        const apiUrl = import.meta.env.VITE_LEARNING_PLATFORM_API_URL;
-        return axios.post<RegisterResponse>(`${apiUrl}/auth/register`, signUpRequest);
+        // POST /auth/register
+        return this.baseApi.http.post<RegisterResponse>(ENDPOINTS.AUTH_REGISTER, signUpRequest);
     }
 
     async signIn(signInRequest: SignInRequest): Promise<AxiosResponse<LoginResponse>> {
-        // Usar la fake API para buscar el usuario (NO usar http-common, usar axios directo)
+        // Usar la fake API para buscar el usuario por email y validar password
         const { email, password } = signInRequest;
-        const response = await axios.get<any[]>(`https://fakeapiplant.vercel.app/users?useremail=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`);
+        const response = await this.baseApi.http.get<any[]>(`${ENDPOINTS.USERS}?useremail=${encodeURIComponent(email)}`);
         const users = response.data;
-        if (users.length === 0) {
-            // Simular error de login
+        if (users.length === 0 || users[0].password !== password) {
+            // Simular error de login si no existe usuario o password no coincide
             throw { response: { data: { message: 'Credenciales inválidas' } } };
         }
         const user = users[0];

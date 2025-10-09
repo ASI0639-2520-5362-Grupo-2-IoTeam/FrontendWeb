@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import type { Analytics } from '../domain/model/analytics.entity';
+import { AnalyticsService } from '../infrastructure/analytics.service';
 
 interface AnalyticsState {
   analytics: Analytics[];
@@ -14,14 +15,13 @@ export const useAnalyticsStore = defineStore('analytics', {
     error: null,
   }),
   actions: {
-    async fetchAnalytics() {
+    async fetchAnalytics(userId: string) {
       this.loading = true;
       this.error = null;
       try {
-        // Aquí deberías llamar a tu servicio real para obtener los análisis
-        // Por ejemplo: const data = await analyticsService.getAll();
-        const data: Analytics[] = [];
-        this.analytics = data;
+        const analyticsService = new AnalyticsService();
+        const response = await analyticsService.getAnalyticsByUser(userId);
+        this.analytics = response.data;
       } catch (e: any) {
         this.error = e.message || 'Error al cargar los análisis';
       } finally {
@@ -43,4 +43,3 @@ export const useAnalyticsStore = defineStore('analytics', {
     }
   }
 });
-

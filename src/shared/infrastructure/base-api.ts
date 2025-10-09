@@ -1,7 +1,7 @@
 import axios, { type AxiosInstance } from "axios";
 
 
-const platformApi: string = import.meta.env.VITE_LEARNING_PLATFORM_API_URL;
+const platformApi: string = import.meta.env.VITE_PLANTCARE_API_URL;
 
 export class BaseApi {
 
@@ -10,6 +10,9 @@ export class BaseApi {
     constructor() {
         this.httpInstance = axios.create({
             baseURL: platformApi,
+            headers: {
+                'Cache-Control': 'no-cache',
+            },
         });
     }
 

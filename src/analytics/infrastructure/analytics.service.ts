@@ -1,11 +1,16 @@
-import axios from "axios";
 import type { Analytics, AnalyticsSummary } from "../domain/model/analytics.entity.ts";
+import { BaseApi, ENDPOINTS } from "../../shared/infrastructure/base-endpoint";
 
 
 export class AnalyticsService {
+    private baseApi: BaseApi;
+
+    constructor() {
+        this.baseApi = new BaseApi();
+    }
 
     // Endpoint de la fake API para analytics
-    resourceEndpoint = 'https://fakeapiplant.vercel.app/analytics';
+    resourceEndpoint = ENDPOINTS.ANALYTICS;
 
     private mapBackendToAnalytics(raw: any): Analytics {
         return {
@@ -32,7 +37,7 @@ export class AnalyticsService {
             throw new Error('Invalid userId provided to getAnalyticsByUser');
         }
         // GET https://fakeapiplant.vercel.app/analytics?userId={userId}
-        const res = await axios.get<any[]>(`${this.resourceEndpoint}?userId=${encodeURIComponent(userId)}`);
+        const res = await this.baseApi.http.get<any[]>(`${this.resourceEndpoint}?userId=${encodeURIComponent(userId)}`);
         const mapped = (res.data || []).map(r => this.mapBackendToAnalytics(r));
         return { ...res, data: mapped };
     }
@@ -40,7 +45,7 @@ export class AnalyticsService {
 
     async getAnalyticsByPlant(plantId: number | string) {
         // GET https://fakeapiplant.vercel.app/analytics?plantId={plantId}
-        const res = await axios.get<any[]>(`${this.resourceEndpoint}?plantId=${plantId}`);
+        const res = await this.baseApi.http.get<any[]>(`${this.resourceEndpoint}?plantId=${plantId}`);
         const mapped = (res.data || []).map(r => this.mapBackendToAnalytics(r));
         return { ...res, data: mapped };
     }
@@ -48,7 +53,7 @@ export class AnalyticsService {
 
     async getAnalyticsById(analyticsId: number | string) {
         // GET https://fakeapiplant.vercel.app/analytics/{analyticsId}
-        const res = await axios.get<any>(`${this.resourceEndpoint}/${analyticsId}`);
+        const res = await this.baseApi.http.get<any>(`${this.resourceEndpoint}/${analyticsId}`);
         return { ...res, data: this.mapBackendToAnalytics(res.data) };
     }
 
@@ -59,7 +64,7 @@ export class AnalyticsService {
             throw new Error('Invalid userId provided to getAnalyticsByUserAndPlant');
         }
         // GET https://fakeapiplant.vercel.app/analytics?userId={userId}&plantId={plantId}
-        const res = await axios.get<any[]>(`${this.resourceEndpoint}?userId=${encodeURIComponent(userId)}&plantId=${plantId}`);
+        const res = await this.baseApi.http.get<any[]>(`${this.resourceEndpoint}?userId=${encodeURIComponent(userId)}&plantId=${plantId}`);
         const mapped = (res.data || []).map(r => this.mapBackendToAnalytics(r));
         return { ...res, data: mapped };
     }
@@ -78,7 +83,7 @@ export class AnalyticsService {
                 criticalAlerts: Number(analyticsResource.summary.criticalAlerts || 0)
             }
         };
-        const res = await axios.post<any>(`${this.resourceEndpoint}`, body);
+        const res = await this.baseApi.http.post<any>(`${this.resourceEndpoint}`, body);
         return { ...res, data: this.mapBackendToAnalytics(res.data) };
     }
 
@@ -96,14 +101,14 @@ export class AnalyticsService {
                 criticalAlerts: Number(analyticsResource.summary.criticalAlerts || 0)
             }
         };
-        const res = await axios.put<any>(`${this.resourceEndpoint}/${analyticsId}`, body);
+        const res = await this.baseApi.http.put<any>(`${this.resourceEndpoint}/${analyticsId}`, body);
         return { ...res, data: this.mapBackendToAnalytics(res.data) };
     }
 
 
     async deleteAnalytics(analyticsId: number | string) {
         // DELETE https://fakeapiplant.vercel.app/analytics/{analyticsId}
-        return axios.delete(`${this.resourceEndpoint}/${analyticsId}`);
+        return this.baseApi.http.delete(`${this.resourceEndpoint}/${analyticsId}`);
     }
 
 
@@ -114,7 +119,7 @@ export class AnalyticsService {
             throw new Error('Invalid userId provided to getAnalyticsByDateRange');
         }
         // GET con filtros de fecha - la fake API podría no soportar esto completamente
-        const res = await axios.get<any[]>(`${this.resourceEndpoint}?userId=${encodeURIComponent(userId)}`);
+        const res = await this.baseApi.http.get<any[]>(`${this.resourceEndpoint}?userId=${encodeURIComponent(userId)}`);
         // Filtrar por fecha en el cliente como fallback
         const filtered = (res.data || []).filter((item: any) => {
             const itemStart = new Date(item.periodStart);
