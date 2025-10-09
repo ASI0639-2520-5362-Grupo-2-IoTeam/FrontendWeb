@@ -1,47 +1,47 @@
 # PlantCare Web – Frontend (Vue.js)
 
-Interfaz web del sistema **PlantCare**, desarrollada en **Vue.js**.  
-Forma parte de la solución integral para la **gestión inteligente de plantas con IoT, analítica e interacción comunitaria**.
+Web interface of the **PlantCare** system, developed in **Vue.js**.  
+It is part of the comprehensive solution for **smart plant management with IoT, analytics, and community interaction**.
 
 ---
 
-## Descripción general
+## Overview
 
-La aplicación permite al usuario:
-- Visualizar el estado de sus plantas conectadas a dispositivos IoT.
-- Gestionar datos de humedad, temperatura y luz.
-- Acceder a métricas y analíticas desde el panel principal.
-- Autenticarse y mantener una sesión segura.
-- Interactuar con la comunidad de usuarios de PlantCare.
+The application allows users to:
+- View the status of their plants connected to IoT devices.  
+- Manage humidity, temperature, and light data.  
+- Access metrics and analytics from the main dashboard.  
+- Authenticate and maintain a secure session.  
+- Interact with the PlantCare user community.  
 
 ---
 
-## Tecnologías principales
+## Main Technologies
 
-| Tecnología | Descripción |
+| Technology | Description |
 |-------------|--------------|
-| **Vue 3** | Framework progresivo para la construcción de interfaces de usuario reactivas. |
-| **Vite** | Herramienta de desarrollo ultrarrápida para aplicaciones modernas de frontend. |
-| **PrimeVue** | Biblioteca de componentes UI con estilo profesional y responsivo. |
-| **Axios** | Cliente HTTP para el consumo de la API backend. |
-| **TypeScript** | Tipado estático para mejorar la mantenibilidad del código. |
-| **Vue Router** | Sistema de enrutamiento SPA para la navegación entre vistas. |
+| **Vue 3** | Progressive framework for building reactive user interfaces. |
+| **Vite** | Ultra-fast development tool for modern frontend applications. |
+| **PrimeVue** | UI component library with a professional and responsive design. |
+| **Axios** | HTTP client for consuming the backend API. |
+| **TypeScript** | Static typing for improved code maintainability. |
+| **Vue Router** | SPA routing system for navigating between views. |
 
 ---
 
-## Instalación y ejecución
+## Installation and Execution
 
 ```bash
-# Clonar el repositorio
+# Clone the repository
 
-# Instalar dependencias
+# Install dependencies
 npm install
 
-# Ejecutar en entorno de desarrollo
+# Run in development mode
 npm run dev
 
-# Compilar para producción
+# Build for production
 npm run build
 
-# Previsualizar el build
+# Preview the production build
 npm run preview
