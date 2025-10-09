@@ -40,7 +40,7 @@ const goToProfile = () => {
       >
         <span class="menu-icon">☰</span>
       </Button>
-      <h1 class="greeting">Hello, John! 👋</h1>
+      <h1 class="greeting">Hello, John!  👋</h1>
     </div>
 
     <div class="header-right">

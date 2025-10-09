@@ -65,6 +65,11 @@ const router = createRouter({
             name: 'Profile',
             component: () => import('./plantcare/Profile/Components/Profile.vue'),
             meta: { requiresAuth: true }
+        },
+        {
+            path: '/analytics',
+            name: 'Analytics',
+            component: () => import('./plantcare/analytics/components/analytics.vue'),
         }
     ]
 });

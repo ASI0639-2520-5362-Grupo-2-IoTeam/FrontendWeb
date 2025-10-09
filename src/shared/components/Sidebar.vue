@@ -25,6 +25,8 @@ const navItems = [
   { path: '/plants', name: 'Plants', label: 'Plants', icon: '🌱' },
   { path: '/history', name: 'History', label: 'History', icon: '📅' },
   { path: '/settings', name: 'Settings', label: 'Settings', icon: '⚙️' },
+  { path: '/profile', name: 'Profile', label: 'Profile', icon: '👤' },
+  { path: '/analytics', name: 'Analytics', label: 'Analytics', icon: '📈' },
 ];
 
 const isActiveRoute = (path: string) => {
