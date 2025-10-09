@@ -37,14 +37,14 @@ const guides = [
       </button>
     </div>
 
-    <p>Connect with fellow plant enthusiasts and share your journey</p>
+    <p class="header-comment">Connect with fellow plant enthusiasts and share your journey</p>
 
     <div class="layout">
       <!-- LEFT: Feed -->
       <section class="feed card">
         <header class="feed-header">
           <span class="dot"></span>
-          <h2>Community Feed</h2>
+          <h2>👥 Community Feed</h2>
         </header>
 
         <!-- Post 1 -->
@@ -81,26 +81,6 @@ const guides = [
               <svg viewBox="0 0 24 24" class="icon"><path d="M18 8a3 3 0 10-2.83-4H12a6 6 0 00-6 6v2H4a2 2 0 000 4h2v2a6 6 0 006 6h3.17A3 3 0 1018 20a3 3 0 00-2.83-2H12a2 2 0 01-2-2v-2h3.17A3 3 0 1018 8z"/></svg>
               <span>Share</span>
             </button>
-          </div>
-        </article>
-
-        <!-- Post 2 -->
-        <article class="post">
-          <div class="post-header">
-            <div class="avatar">MR</div>
-            <div class="meta">
-              <div class="name">Marcus Rivera</div>
-              <div class="timeplace">3 hours ago · Austin, TX</div>
-            </div>
-          </div>
-          <p class="post-text">
-            Anyone else struggling with their Fiddle Leaf Fig dropping leaves? I've tried
-            adjusting watering schedule but no luck so far. Any tips?
-          </p>
-          <div class="post-actions">
-            <button class="icon-btn"><svg viewBox="0 0 24 24" class="icon"><path d="M12.1 8.64l-.1.1-.11-.11C10.14 6.7 7.1 7.24 6 9.28 4.9 11.32 6.24 14 8.5 14h.55l-.43 3.38-.02.23c0 .41.34.75.75.75.18 0 .35-.06.49-.18L12 16.1l2.16 2.08c.14.12.31.19.5.19.41 0 .75-.34.75-.75l-.02-.23L15 14h.5c2.26 0 3.6-2.68 2.5-4.72-1.1-2.04-4.14-2.58-5.9-.64z"/></svg><span>12</span></button>
-            <button class="icon-btn"><svg viewBox="0 0 24 24" class="icon"><path d="M20 2H4a2 2 0 00-2 2v14l4-4h14a2 2 0 002-2V4a2 2 0 00-2-2z"/></svg><span>15</span></button>
-            <button class="icon-btn"><svg viewBox="0 0 24 24" class="icon"><path d="M18 8a3 3 0 10-2.83-4H12a6 6 0 00-6 6v2H4a2 2 0 000 4h2v2a6 6 0 006 6h3.17A3 3 0 1018 20a3 3 0 00-2.83-2H12a2 2 0 01-2-2v-2h3.17A3 3 0 1018 8z"/></svg><span>Share</span></button>
           </div>
         </article>
       </section>
@@ -178,6 +158,11 @@ const guides = [
   --chip: #e9f7eb;
 }
 
+.header-comment{
+  margin-top: 24px;
+  margin-bottom: 24px;
+  color: var(--muted);
+}
 .community {
   background: var(--bg);
   min-height: 100%;
@@ -207,12 +192,12 @@ const guides = [
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: 14px;
-  box-shadow: 0 6px 18px rgba(0,0,0,0.04);
+  box-shadow: 0 12px 32px rgba(0,0,0,0.16);
 }
 
 .feed { padding: 16px; }
 .feed-header {
-  display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
+  display: flex; align-items: center; margin-bottom: 8px;
 }
 .feed-header .dot {
   width: 10px; height: 10px; background: var(--primary); border-radius: 50%;
