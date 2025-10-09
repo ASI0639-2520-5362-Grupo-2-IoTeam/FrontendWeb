@@ -308,6 +308,7 @@ function getInitials(name) {
   display: grid;
   grid-template-columns: 1.4fr 0.8fr;
   gap: 20px;
+  align-items: flex-start;
 }
 
 .card {
@@ -396,8 +397,9 @@ function getInitials(name) {
 .btn-outline {
   padding: 8px 12px; border: 1px solid var(--border); border-radius: 10px; background: #fff; cursor: pointer;
   font-weight: 600;
+  background-color: #8cc63f;
 }
-.btn-outline:hover { background: #fafafa; }
+.btn-outline:hover { background-color: #0f5132; }
 
 @media (max-width: 980px) {
   .layout { grid-template-columns: 1fr; }
@@ -583,4 +585,5 @@ function getInitials(name) {
   color: #4b5563;
   margin: 4px 0 6px 40px;
 }
+
 </style>
