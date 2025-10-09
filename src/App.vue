@@ -16,8 +16,8 @@
 </template>
 
 <script setup lang="ts">
-import Header from "./shared/components/Header.vue";
-import Sidebar from "./shared/components/Sidebar.vue";
+import Header from "./shared/presentation/components/Header.vue";
+import Sidebar from "./shared/presentation/components/Sidebar.vue";
 import { useRoute} from 'vue-router';
 import { computed } from 'vue';
 

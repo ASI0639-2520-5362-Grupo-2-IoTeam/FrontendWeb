@@ -1,5 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router';
-import { useAuthenticationStore } from './IAM/services/Authentication.Store.ts';
+import { useAuthenticationStore } from './iam/services/Authentication.Store.ts';
+import analyticsRoutes from './analytics/presentation/analytics-routes';
+import plantmanagementRoutes from './plantmanagement/presentation/plantmanagement-routes';
 
 const router = createRouter({
     history: createWebHistory(),
@@ -8,73 +10,61 @@ const router = createRouter({
         {
             path: '/',
             name: 'SignIn',
-            component: () => import('./IAM/pages/sign-in.component.vue'),
+            component: () => import('./iam/pages/sign-in.component.vue'),
             meta: { hideLayout: true }
         },
         // Rutas de autenticación
         {
             path: '/sign-in',
             name: 'SignInAlt',
-            component: () => import('./IAM/pages/sign-in.component.vue'),
+            component: () => import('./iam/pages/sign-in.component.vue'),
             meta: { hideLayout: true }
         },
         {
             path: '/sign-up',
             name: 'SignUp',
-            component: () => import('./IAM/pages/sign-up.component.vue'),
+            component: () => import('./iam/pages/sign-up.component.vue'),
             meta: { hideLayout: true }
         },
         // Rutas protegidas
         {
             path: '/dashboard',
             name: 'Dashboard',
-            component: () => import('./plantcare/Dashboard/components/Dashboard.vue'),
+            component: () => import('./shared/presentation/components/Dashboard.vue'),
             meta: { requiresAuth: true }
         },
+        // Rutas anidadas para PlantManagement
         {
             path: '/plants',
-            name: 'Plants',
-            component: () => import('./plantcare/Plants/components/Plants.vue'),
-            meta: { requiresAuth: true }
+            name: 'plantmanagement',
+            component: () => import('./plantmanagement/presentation/views/Plants.vue'),
+            meta: { requiresAuth: true },
+            children: plantmanagementRoutes
         },
+        // Rutas anidadas para Analytics
         {
-            path: '/plants/new',
-            component: () => import('./plantcare/Plants/components/PlantsForm.vue'),
-            meta: { requiresAuth: true }
-        },
-        {
-            path: '/plants/:id',
-            name: 'PlantDetail',
-            component: () => import('./plantcare/PlantDetail/component/PlantDetail.vue'),
-            meta: { requiresAuth: true }
-        },
-        {
-            path: '/history',
-            name: 'History',
-            component: () => import('./plantcare/History/components/History.vue'),
-            meta: { requiresAuth: true }
+            path: '/analytics',
+            name: 'Analytics',
+            component: () => import('./analytics/presentation/views/Analytics.vue'),
+            meta: { requiresAuth: true },
+            children: analyticsRoutes
         },
         {
             path: '/settings',
             name: 'Settings',
-            component: () => import('./plantcare/Settings/components/Settings.vue'),
+            component: () => import('./shared/presentation/components/Settings.vue'),
             meta: { requiresAuth: true }
         },
         {
             path: '/profile',
             name: 'Profile',
-            component: () => import('./plantcare/Profile/Components/Profile.vue'),
+            component: () => import('./Profile/Components/Profile.vue'),
             meta: { requiresAuth: true }
-        },
-        {
-            path: '/analytics',
-            name: 'Analytics',
-            component: () => import('./plantcare/analytics/components/Analytics.vue'),
         },
         {
             path: '/community',
             name: 'Community',
-            component: () => import('./plantcare/community/components/Community.vue'),
+            component: () => import('./community/components/Community.vue'),
         }
     ]
 });
@@ -96,12 +86,12 @@ router.beforeEach((to, _from, next) => {
         if (authStore.isSignedIn) {
             isAuth = true;
         } else {
-            // Fallback: si hay token y userId en localStorage, poblar el store mínimamente
+            // Fallback: si hay token y userUuid en localStorage, poblar el store mínimamente
             const token = localStorage.getItem('token');
-            const uuid = localStorage.getItem('userId');
+            const uuid = localStorage.getItem('userUuid');
             const email = localStorage.getItem('email');
             const role = localStorage.getItem('role');
-            console.debug('[router] localStorage', { token: !!token, userId: uuid, email: !!email, role: !!role });
+            console.debug('[router] localStorage', { token: !!token, userUuid: uuid, email: !!email, role: !!role });
             if (token && uuid) {
                 try {
                     authStore.token = token;
@@ -119,15 +109,14 @@ router.beforeEach((to, _from, next) => {
         }
     } catch (e) {
         // Fallback final: comprobar directamente localStorage usando la clave 'token' (la que usa el store)
-        isAuth = !!localStorage.getItem('token') || !!localStorage.getItem('userId');
+        isAuth = !!localStorage.getItem('token') || !!localStorage.getItem('userUuid');
     }
 
     console.debug('[router] requiresAuth=', (to.meta as any).requiresAuth, 'isAuth=', isAuth);
 
     if ((to.meta as any).requiresAuth && !isAuth) {
-        console.debug('[router] not authenticated but allowing route for dev (avoid redirect)');
-        // NO redirigimos automáticamente en modo de desarrollo / para evitar bloquear la UI
-        return next();
+        console.debug('[router] not authenticated, redirecting to sign-in');
+        return next({ name: 'SignIn' });
     }
     if (((to.name === 'SignIn' || to.name === 'SignInAlt' || to.name === 'SignUp') && isAuth)) {
         console.debug('[router] redirecting to Dashboard because already authenticated');

@@ -32,7 +32,7 @@ const pinia = createPinia();
 app.use(pinia);
 
 // Inicializar el store de autenticación al arrancar la app
-import { useAuthenticationStore } from './IAM/services/Authentication.Store.ts';
+import { useAuthenticationStore } from './iam/services/Authentication.Store.ts';
 const authStore = useAuthenticationStore();
 try {
   authStore.initialize();
