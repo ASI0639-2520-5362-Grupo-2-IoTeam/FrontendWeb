@@ -392,7 +392,7 @@ function getInitials(name) {
   font-weight: 600; cursor: pointer; transition: transform .02s ease, filter .2s ease;
 }
 .btn-primary:hover { filter: brightness(0.95); }
-.btn-primary.sm { padding: 8px 12px; border-radius: 10px; }
+.btn-primary.sm { padding: 8px 12px; border-radius: 10px;background-color: #8cc63f; }
 
 .btn-outline {
   padding: 8px 12px; border: 1px solid var(--border); border-radius: 10px; background: #fff; cursor: pointer;
