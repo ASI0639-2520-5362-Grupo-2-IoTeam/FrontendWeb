@@ -98,14 +98,14 @@ router.beforeEach((to, _from, next) => {
         } else {
             // Fallback: si hay token y userId en localStorage, poblar el store mínimamente
             const token = localStorage.getItem('token');
-            const id = localStorage.getItem('userId');
+            const uuid = localStorage.getItem('userId');
             const email = localStorage.getItem('email');
             const role = localStorage.getItem('role');
-            console.debug('[router] localStorage', { token: !!token, userId: id, email: !!email, role: !!role });
-            if (token && id) {
+            console.debug('[router] localStorage', { token: !!token, userId: uuid, email: !!email, role: !!role });
+            if (token && uuid) {
                 try {
                     authStore.token = token;
-                    authStore.id = id;
+                    authStore.uuid = uuid;
                     authStore.email = email ?? null;
                     authStore.roles = role ? [role] : [];
                     authStore.isSignedIn = true;

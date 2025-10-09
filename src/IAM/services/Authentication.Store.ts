@@ -54,18 +54,26 @@ export const useAuthenticationStore = defineStore("authentication", {
         },
         /** Inicializa el store desde localStorage (por ejemplo, al recargar la página) */
         initialize() {
-            const token = localStorage.getItem('token');
+            const token = localStorage.getItem('token') || '';
             const userUuid = localStorage.getItem('userUuid');
             console.debug('[AuthStore] initialize userUuid from localStorage:', userUuid);
             if (token && userUuid) {
                 try {
                     const parts = token.split('.');
-                    const payload = JSON.parse(atob(parts[1]));
-                    this.token = token;
-                    this.uuid = userUuid; // Usar el UUID guardado
-                    this.email = payload.sub || null;
-                    this.roles = payload.role ? [payload.role] : [];
-                    this.isSignedIn = true;
+                    if (parts.length > 1 && parts[1]) {
+                        const payload = JSON.parse(atob(parts[1]));
+                        this.token = token;
+                        this.uuid = userUuid; // Usar el UUID guardado
+                        this.email = payload.sub || null;
+                        this.roles = payload.role ? [payload.role] : [];
+                        this.isSignedIn = true;
+                    } else {
+                        this.token = null;
+                        this.uuid = null;
+                        this.email = null;
+                        this.roles = [];
+                        this.isSignedIn = false;
+                    }
                 } catch (e) {
                     this.token = null;
                     this.uuid = null;
@@ -87,11 +95,11 @@ export const useAuthenticationStore = defineStore("authentication", {
             try {
                 const response = await new AuthenticationService().signUp(payload);
                 // Registro exitoso - el backend devuelve { id, email, role }
-                // Guardar los datos del usuario registrado
-                const { uuid, email, role } = response.data;
-                localStorage.setItem('userUuid', uuid);
-                localStorage.setItem('email', email);
-                localStorage.setItem('role', role);
+                const { id, email, role } = response.data;
+                const userUuid = id || '';
+                localStorage.setItem('userUuid', userUuid);
+                localStorage.setItem('email', email || '');
+                localStorage.setItem('role', role || '');
                 return response.data;
             } catch (error) {
                 throw error;

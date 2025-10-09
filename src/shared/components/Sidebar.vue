@@ -37,16 +37,6 @@ const isActiveRoute = (path: string) => {
   return route.path.startsWith(path);
 };
 
-const handleNavClick = (item: { path: string; name?: string }) => {
-  console.debug('[Sidebar] navigate to', item);
-  if (item.name) {
-    router.push({ name: item.name as any });
-  } else {
-    router.push(item.path);
-  }
-  emit('close');
-};
-
 const handleLogout = () => {
   try {
     authStore.signOut();
@@ -64,9 +54,9 @@ const sidebarClass = computed(() => ({
 }));
 
 const userName = computed(() => {
-  // Preferiblemente obtén nombre desde el store si existe (no hay campo nombre, usamos email o id)
+  // Preferiblemente obtén nombre desde el store si existe (no hay campo nombre, usamos email o uuid)
   if (authStore.email) return authStore.email.split('@')[0];
-  if (authStore.id) return `User-${authStore.id.substring(0,6)}`;
+  if (authStore.uuid) return `User-${authStore.uuid.substring(0,6)}`;
   return 'Guest';
 });
 
@@ -118,7 +108,7 @@ const authStatusClass = computed(() => ({
         <div class="user-info">
           <div class="user-name">{{ userName }}</div>
           <div class="user-email">{{ userEmail }}</div>
-          <div class="user-id">ID: {{ authStore.id ?? '—' }}</div>
+          <div class="user-id">ID: {{ authStore.uuid ?? '—' }}</div>
         </div>
         <div :class="authStatusClass" :title="authStore.isSignedIn ? 'Signed in' : 'Signed out'"></div>
       </div>

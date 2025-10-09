@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useAuthenticationStore } from '../../../IAM/services/Authentication.Store';
 import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
@@ -141,7 +141,7 @@ onMounted(async () => {
         <div class="profile-header">
           <div class="avatar-section">
             <Avatar
-                :image="avatarPreview"
+                :image="avatarPreview || undefined"
                 :label="!avatarPreview ? fullName.split(' ').map(n => n[0]).join('') : undefined"
                 class="profile-avatar"
                 shape="circle"

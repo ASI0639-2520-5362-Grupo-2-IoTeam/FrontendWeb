@@ -3,7 +3,6 @@ import { ref } from 'vue';
 import { useAuthenticationStore} from "../services/Authentication.Store.ts";
 import { SignUpRequest} from "../model/sign-up.request.ts";
 import { useRouter } from 'vue-router';
-import { useToast } from 'primevue/usetoast';
 import type { AxiosError } from 'axios';
 
 import logo from '../../assets/vue.svg';
@@ -15,7 +14,6 @@ const errorMessage = ref<string>("");
 
 const authenticationStore = useAuthenticationStore();
 const router = useRouter();
-const toast = useToast();
 
 interface ErrorResponseData {
   message: string;
@@ -33,7 +31,7 @@ async function onSignUp(): Promise<void> {
   const signUpRequest = new SignUpRequest(username.value, password.value);
 
   try {
-    await authenticationStore.signUp(signUpRequest, router, toast);
+    await authenticationStore.signUp(signUpRequest);
     // Redirigir al inicio de sesión tras registro exitoso
     router.push('/sign-in');
   } catch (error: unknown) {

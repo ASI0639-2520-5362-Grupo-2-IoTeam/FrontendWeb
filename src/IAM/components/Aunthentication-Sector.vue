@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue';
+import Button from 'primevue/button';
 
 import { useAuthenticationStore} from "../services/Authentication.Store.ts";
 import router from "../../router.ts";
@@ -23,9 +24,8 @@ const isSignedIn = computed(() => {
 });
 
 const currentUsername = computed(() => {
-  console.log('Username actual:', authenticationStore.username);
-
-  return authenticationStore.username || 'Invitado';
+  console.log('Email actual:', authenticationStore.email);
+  return authenticationStore.email || 'Invitado';
 });
 
 
@@ -51,8 +51,7 @@ const onSignUp = () => {
 };
 
 const onSignOut = () => {
-
-  authenticationStore.signOut(router);
+  authenticationStore.signOut();
 };
 
 const updateActiveButton = () => {
@@ -113,14 +112,14 @@ watch(
     </div>
     <div v-else>
       <div class="desktop-buttons">
-        <pv-button :class="['signin', { active: activeButton === 'sign-in' }]" @click="onSignIn">Iniciar Sesión</pv-button>
-        <pv-button :class="['signup', { active: activeButton === 'sign-up' }]" @click="onSignUp">Registrarse</pv-button>
+        <Button :class="['signin', { active: activeButton === 'sign-in' }]" @click="onSignIn">Iniciar Sesión</Button>
+        <Button :class="['signup', { active: activeButton === 'sign-up' }]" @click="onSignUp">Registrarse</Button>
       </div>
       <div class="mobile-menu">
-        <pv-button icon="pi pi-bars" @click="toggleMenu"></pv-button>
+        <Button icon="pi pi-bars" @click="toggleMenu"></Button>
         <div :class="['dropdown-menu', { closing: closingMenu }]" v-if="showMenu">
-          <pv-button :class="['signin', { active: activeButton === 'sign-in' }]" @click="onSignIn">Iniciar Sesión</pv-button>
-          <pv-button :class="['signup', { active: activeButton === 'sign-up' }]" @click="onSignUp">Registrarse</pv-button>
+          <Button :class="['signin', { active: activeButton === 'sign-in' }]" @click="onSignIn">Iniciar Sesión</Button>
+          <Button :class="['signup', { active: activeButton === 'sign-up' }]" @click="onSignUp">Registrarse</Button>
         </div>
       </div>
     </div>

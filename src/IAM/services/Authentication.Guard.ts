@@ -12,7 +12,6 @@ type RouteLocationWithAuth = RouteLocationNormalized & { meta: RouteMetaAuth };
 
 export function authenticationGuard(
     to: RouteLocationWithAuth,
-    from: RouteLocationWithAuth,
     next: NavigationGuardNext
 ): void {
     const token = Cookies.get('token');

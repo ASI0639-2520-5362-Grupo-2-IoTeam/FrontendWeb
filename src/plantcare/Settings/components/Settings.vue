@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import Button from 'primevue/button';
-import InputText from 'primevue/inputtext';
 import InputSwitch from 'primevue/inputswitch';
 
 
@@ -12,9 +11,6 @@ interface Device {
   status: 'active' | 'inactive';
 }
 
-const fullName = ref('John Doe');
-const email = ref('john@plantcare.com');
-const phone = ref('+1 (555) 123-4567');
 
 const wateringReminders = ref(true);
 const humidityAlerts = ref(true);
@@ -25,9 +21,6 @@ const devices = ref<Device[]>([
   { id: 2, name: 'Humidity Sensor #2', location: 'Bedroom', status: 'active' },
 ]);
 
-const handleSaveProfile = () => {
-  console.log('Saving profile:', { fullName: fullName.value, email: email.value, phone: phone.value });
-};
 
 const handleManageSubscription = () => {
   console.log('Manage subscription');
