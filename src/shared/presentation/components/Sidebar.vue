@@ -22,7 +22,7 @@ const authStore = useAuthenticationStore();
 
 const navItems = [
   { path: '/dashboard', name: 'Dashboard', label: 'Dashboard', icon: '📊' },
-  { path: '/plants', name: 'plantmanagement', label: 'plantmanagement', icon: '🌱' },
+  { path: '/plants', name: 'plants', label: 'plants', icon: '🌱' },
   { path: '/settings', name: 'Settings', label: 'Settings', icon: '⚙️' },
   { path: '/profile', name: 'Profile', label: 'Profile', icon: '👤' },
   { path: '/analytics', name: 'Analytics', label: 'Analytics', icon: '📈' },
