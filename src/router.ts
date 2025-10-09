@@ -69,7 +69,12 @@ const router = createRouter({
         {
             path: '/analytics',
             name: 'Analytics',
-            component: () => import('./plantcare/analytics/components/analytics.vue'),
+            component: () => import('./plantcare/analytics/components/Analytics.vue'),
+        },
+        {
+            path: '/community',
+            name: 'Community',
+            component: () => import('./plantcare/community/components/Community.vue'),
         }
     ]
 });
