@@ -1,4 +1,7 @@
 <script setup>
+
+import { ref, onMounted, computed } from 'vue'
+
 const experts = [
   { id: 1, initials: 'DP', name: 'Dr. Plant Expert', specialty: 'Horticulturist · Tropical Plants' },
   { id: 2, initials: 'GT', name: 'Green Thumb Guru', specialty: 'Plant Care Specialist · Indoor Gardens' }
@@ -20,6 +23,70 @@ const guides = [
     img: 'https://images.unsplash.com/photo-1463320898484-cdee8141c787?q=80&w=600&auto=format&fit=crop'
   }
 ]
+
+const BASE_URL = 'https://fakeapiplant.vercel.app'
+
+const posts = ref([])
+const profiles = ref([])
+const comments = ref([])
+const loading = ref(true)
+
+onMounted(async () => {
+  try {
+    const [postsRes, profilesRes, commentsRes] = await Promise.all([
+      fetch(`${BASE_URL}/posts`),
+      fetch(`${BASE_URL}/profiles`),
+      fetch(`${BASE_URL}/comments`)
+    ])
+    posts.value = await postsRes.json()
+    profiles.value = await profilesRes.json()
+    comments.value = await commentsRes.json()
+  } catch (err) {
+    console.error('Error fetching data:', err)
+  } finally {
+    loading.value = false
+  }
+})
+
+/* 🔗 Unir cada post con su perfil y comentarios */
+const enrichedPosts = computed(() =>
+    posts.value.map(post => {
+      const profile = profiles.value.find(p => String(p.id) === String(post.userId))
+
+      // comentarios asociados a este post
+      const postComments = comments.value
+          .filter(c => String(c.postId) === String(post.id))
+          .map(comment => {
+            const commenterProfile = profiles.value.find(p => String(p.id) === String(comment.userId))
+            return {
+              ...comment,
+              displayName: commenterProfile?.displayName || 'Unknown',
+              avatarUrl: commenterProfile?.avatarUrl || null,
+              location: commenterProfile?.location || null
+            }
+          })
+
+      return {
+        ...post,
+        displayName: profile?.displayName || 'Unknown',
+        avatarUrl: profile?.avatarUrl || null,
+        location: profile?.location || null,
+        comments: postComments
+      }
+    })
+)
+
+/* 🧩 Crear iniciales si no hay imagen */
+function getInitials(name) {
+  if (!name) return ''
+  return name
+      .split(' ')
+      .filter(Boolean)
+      .map(n => n[0])
+      .slice(0, 2)
+      .join('')
+      .toUpperCase()
+}
 </script>
 
 <template>
@@ -47,42 +114,104 @@ const guides = [
           <h2>👥 Community Feed</h2>
         </header>
 
-        <!-- Post 1 -->
-        <article class="post">
+        <!-- Post section -->
+        <div v-if="loading" class="loading">Loading posts...</div>
+
+        <!-- 🪴 Lista dinámica de posts -->
+        <article v-for="post in enrichedPosts" :key="post.id" class="post">
+          <!-- Header -->
           <div class="post-header">
-            <div class="avatar">SC</div>
+            <img
+                v-if="post.avatarUrl"
+                :src="post.avatarUrl"
+                :alt="post.displayName"
+                class="avatar-img"
+            />
+            <div v-else class="avatar">{{ getInitials(post.displayName) }}</div>
+
             <div class="meta">
-              <div class="name">Sarah Chen</div>
-              <div class="timeplace">2 hours ago · San Francisco, CA</div>
+              <div class="name">{{ post.displayName }}</div>
+              <div class="timeplace">
+                {{ post.time || 'Recently' }}
+                <template v-if="post.location"> · {{ post.location }}</template>
+              </div>
             </div>
           </div>
 
-          <p class="post-text">
-            My Monstera finally grew a new leaf after 3 months! The fenestrations are
-            coming in beautifully 🪴
-          </p>
+          <!-- Contenido -->
+          <p class="post-text">{{ post.content }}</p>
 
           <img
+              v-if="post.image"
               class="post-image"
-              src="https://images.unsplash.com/photo-1524758631624-e2822e304c36?q=80&w=1200&auto=format&fit=crop"
-              alt="Monstera"
+              :src="post.image"
+              :alt="post.title || 'Post image'"
           />
 
+          <!-- Acciones -->
           <div class="post-actions">
             <button class="icon-btn" title="Like">
-              <svg viewBox="0 0 24 24" class="icon"><path d="M12.1 8.64l-.1.1-.11-.11C10.14 6.7 7.1 7.24 6 9.28 4.9 11.32 6.24 14 8.5 14h.55l-.43 3.38-.02.23c0 .41.34.75.75.75.18 0 .35-.06.49-.18L12 16.1l2.16 2.08c.14.12.31.19.5.19.41 0 .75-.34.75-.75l-.02-.23L15 14h.5c2.26 0 3.6-2.68 2.5-4.72-1.1-2.04-4.14-2.58-5.9-.64z"/></svg>
+              <svg viewBox="0 0 24 24" class="icon">
+                <path
+                    d="M12.1 8.64l-.1.1-.11-.11C10.14 6.7 7.1 7.24 6 9.28 4.9 11.32 6.24 14 8.5 14h.55l-.43 3.38-.02.23c0 .41.34.75.75.75.18 0 .35-.06.49-.18L12 16.1l2.16 2.08c.14.12.31.19.5.19.41 0 .75-.34.75-.75l-.02-.23L15 14h.5c2.26 0 3.6-2.68 2.5-4.72-1.1-2.04-4.14-2.58-5.9-.64z"
+                />
+              </svg>
               <span>24</span>
             </button>
+
             <button class="icon-btn" title="Comments">
-              <svg viewBox="0 0 24 24" class="icon"><path d="M20 2H4a2 2 0 00-2 2v14l4-4h14a2 2 0 002-2V4a2 2 0 00-2-2z"/></svg>
-              <span>8</span>
+              <svg viewBox="0 0 24 24" class="icon">
+                <path
+                    d="M20 2H4a2 2 0 00-2 2v14l4-4h14a2 2 0 002-2V4a2 2 0 00-2-2z"
+                />
+              </svg>
+              <span>{{ post.comments.length }}</span>
             </button>
+
             <button class="icon-btn" title="Share">
-              <svg viewBox="0 0 24 24" class="icon"><path d="M18 8a3 3 0 10-2.83-4H12a6 6 0 00-6 6v2H4a2 2 0 000 4h2v2a6 6 0 006 6h3.17A3 3 0 1018 20a3 3 0 00-2.83-2H12a2 2 0 01-2-2v-2h3.17A3 3 0 1018 8z"/></svg>
+              <svg viewBox="0 0 24 24" class="icon">
+                <path
+                    d="M18 8a3 3 0 10-2.83-4H12a6 6 0 00-6 6v2H4a2 2 0 000 4h2v2a6 6 0 006 6h3.17A3 3 0 1018 20a3 3 0 00-2.83-2H12a2 2 0 01-2-2v-2h3.17A3 3 0 1018 8z"
+                />
+              </svg>
               <span>Share</span>
             </button>
           </div>
+
+          <!-- 💬 Comentarios -->
+          <div v-if="post.comments.length" class="comments">
+            <h4>Comments</h4>
+            <div
+                v-for="comment in post.comments"
+                :key="comment.id"
+                class="comment"
+            >
+              <div class="comment-header">
+                <img
+                    v-if="comment.avatarUrl"
+                    :src="comment.avatarUrl"
+                    :alt="comment.displayName"
+                    class="comment-avatar"
+                />
+                <div v-else class="comment-avatar-alt">
+                  {{ getInitials(comment.displayName) }}
+                </div>
+                <div>
+                  <p class="comment-author">{{ comment.displayName }}</p>
+                  <p class="comment-date">
+                    {{ new Date(comment.createdAt).toLocaleString() }}
+                  </p>
+                </div>
+              </div>
+              <p class="comment-body">{{ comment.content }}</p>
+            </div>
+          </div>
         </article>
+
+        <div v-if="!loading && enrichedPosts.length === 0" class="empty">
+          No posts available 🌿
+        </div>
+
       </section>
 
       <!-- RIGHT: Sidebar -->
@@ -306,5 +435,136 @@ const guides = [
   width: 20px;
   height: 20px;
   filter: brightness(0) invert(1); /* lo hace blanco */
+}
+
+.loading {
+  text-align: center;
+  color: #777;
+  padding: 12px 0;
+}
+.empty {
+  text-align: center;
+  color: #888;
+  font-style: italic;
+  padding: 16px 0;
+}
+.post {
+  padding: 12px;
+  border-top: 1px solid #e5e7eb;
+}
+.post:first-of-type {
+  border-top: 0;
+}
+.post-header {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  background: #d1fae5;
+  color: #065f46;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+}
+.avatar-img {
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  object-fit: cover;
+  border: 1px solid #e5e7eb;
+}
+.meta .name {
+  font-weight: 600;
+}
+.meta .timeplace {
+  font-size: 12px;
+  color: #6b7280;
+}
+.post-text {
+  margin: 10px 0;
+  line-height: 1.5;
+}
+.post-image {
+  width: 100%;
+  height: 220px;
+  object-fit: cover;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+}
+.feed-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  padding: 16px;
+}
+.feed-header .dot {
+  width: 10px;
+  height: 10px;
+  background: #56b35f;
+  border-radius: 50%;
+}
+
+.comments {
+  margin-top: 12px;
+  background: #f9fafb;
+  border-radius: 8px;
+  padding: 10px 14px;
+}
+.comments h4 {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: #374151;
+}
+.comment {
+  border-top: 1px solid #e5e7eb;
+  padding-top: 6px;
+  margin-top: 6px;
+}
+.comment:first-of-type {
+  border-top: none;
+  margin-top: 0;
+  padding-top: 0;
+}
+.comment-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.comment-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  object-fit: cover;
+  border: 1px solid #e5e7eb;
+}
+.comment-avatar-alt {
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  background: #e0f2fe;
+  color: #0369a1;
+  display: grid;
+  place-items: center;
+  font-weight: 600;
+}
+.comment-author {
+  font-weight: 600;
+  font-size: 13px;
+  color: #111827;
+}
+.comment-date {
+  font-size: 11px;
+  color: #6b7280;
+}
+.comment-body {
+  font-size: 13px;
+  color: #4b5563;
+  margin: 4px 0 6px 40px;
 }
 </style>
