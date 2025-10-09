@@ -29,18 +29,22 @@ const BASE_URL = 'https://fakeapiplant.vercel.app'
 const posts = ref([])
 const profiles = ref([])
 const comments = ref([])
+const reactions = ref([])
 const loading = ref(true)
 
 onMounted(async () => {
   try {
-    const [postsRes, profilesRes, commentsRes] = await Promise.all([
+    const [postsRes, profilesRes, commentsRes, reactionsRes] = await Promise.all([
       fetch(`${BASE_URL}/posts`),
       fetch(`${BASE_URL}/profiles`),
-      fetch(`${BASE_URL}/comments`)
+      fetch(`${BASE_URL}/comments`),
+      fetch(`${BASE_URL}/reactions`)
     ])
+
     posts.value = await postsRes.json()
     profiles.value = await profilesRes.json()
     comments.value = await commentsRes.json()
+    reactions.value = await reactionsRes.json()
   } catch (err) {
     console.error('Error fetching data:', err)
   } finally {
@@ -48,12 +52,12 @@ onMounted(async () => {
   }
 })
 
-/* 🔗 Unir cada post con su perfil y comentarios */
+/* 🔗 Enriquecer posts con perfil, comentarios y likes */
 const enrichedPosts = computed(() =>
     posts.value.map(post => {
       const profile = profiles.value.find(p => String(p.id) === String(post.userId))
 
-      // comentarios asociados a este post
+      // Comentarios por post
       const postComments = comments.value
           .filter(c => String(c.postId) === String(post.id))
           .map(comment => {
@@ -66,12 +70,18 @@ const enrichedPosts = computed(() =>
             }
           })
 
+      // Reacciones (likes) por post
+      const postLikes = reactions.value.filter(
+          r => r.targetType === 'post' && String(r.targetId) === String(post.id) && r.type === 'like'
+      )
+
       return {
         ...post,
         displayName: profile?.displayName || 'Unknown',
         avatarUrl: profile?.avatarUrl || null,
         location: profile?.location || null,
-        comments: postComments
+        comments: postComments,
+        likes: postLikes.length
       }
     })
 )
@@ -148,33 +158,16 @@ function getInitials(name) {
               :alt="post.title || 'Post image'"
           />
 
-          <!-- Acciones -->
+          <!-- ⚡ Reacciones (likes y comentarios) -->
           <div class="post-actions">
             <button class="icon-btn" title="Like">
-              <svg viewBox="0 0 24 24" class="icon">
-                <path
-                    d="M12.1 8.64l-.1.1-.11-.11C10.14 6.7 7.1 7.24 6 9.28 4.9 11.32 6.24 14 8.5 14h.55l-.43 3.38-.02.23c0 .41.34.75.75.75.18 0 .35-.06.49-.18L12 16.1l2.16 2.08c.14.12.31.19.5.19.41 0 .75-.34.75-.75l-.02-.23L15 14h.5c2.26 0 3.6-2.68 2.5-4.72-1.1-2.04-4.14-2.58-5.9-.64z"
-                />
-              </svg>
-              <span>24</span>
+              <div>💚</div>
+              <span>{{ post.likes }}</span>
             </button>
 
             <button class="icon-btn" title="Comments">
-              <svg viewBox="0 0 24 24" class="icon">
-                <path
-                    d="M20 2H4a2 2 0 00-2 2v14l4-4h14a2 2 0 002-2V4a2 2 0 00-2-2z"
-                />
-              </svg>
+              <div>💬</div>
               <span>{{ post.comments.length }}</span>
-            </button>
-
-            <button class="icon-btn" title="Share">
-              <svg viewBox="0 0 24 24" class="icon">
-                <path
-                    d="M18 8a3 3 0 10-2.83-4H12a6 6 0 00-6 6v2H4a2 2 0 000 4h2v2a6 6 0 006 6h3.17A3 3 0 1018 20a3 3 0 00-2.83-2H12a2 2 0 01-2-2v-2h3.17A3 3 0 1018 8z"
-                />
-              </svg>
-              <span>Share</span>
             </button>
           </div>
 
@@ -509,6 +502,34 @@ function getInitials(name) {
   border-radius: 50%;
 }
 
+.post-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+.icon-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 6px 10px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+.icon-btn:hover {
+  background: #f9fafb;
+}
+.icon {
+  width: 18px;
+  height: 18px;
+  fill: #374151;
+}
+.icon-btn span {
+  font-size: 14px;
+  color: #374151;
+}
 .comments {
   margin-top: 12px;
   background: #f9fafb;
@@ -525,11 +546,6 @@ function getInitials(name) {
   border-top: 1px solid #e5e7eb;
   padding-top: 6px;
   margin-top: 6px;
-}
-.comment:first-of-type {
-  border-top: none;
-  margin-top: 0;
-  padding-top: 0;
 }
 .comment-header {
   display: flex;
