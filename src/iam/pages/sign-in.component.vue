@@ -7,7 +7,7 @@ import { useRouter } from 'vue-router';
 import { useToast } from 'primevue/usetoast';
 import type { AxiosError } from 'axios';
 
-import logo from '../../assets/vue.svg';
+import logo from '../../assets/pc_logo.png'
 
 // --- State (ref) ---
 const email = ref<string>(""); // Cambiado de username a email

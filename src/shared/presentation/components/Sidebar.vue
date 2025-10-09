@@ -3,6 +3,7 @@ import { computed } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import Avatar from 'primevue/avatar';
 import { useAuthenticationStore} from "../../../iam/services/Authentication.Store.ts";
+import logo from '../../../assets/pc_logo_green.png'
 
 interface SidebarProps {
   isOpen?: boolean;
@@ -72,7 +73,7 @@ const authStatusClass = computed(() => ({
   <aside :class="sidebarClass">
     <div class="logo">
       <div class="logo-content">
-        <div class="logo-icon">🌿</div>
+        <img :src="logo" alt="PlantCare Logo" class="logo-icon" />
         <span class="logo-text">PlantCare</span>
       </div>
     </div>
@@ -141,7 +142,6 @@ const authStatusClass = computed(() => ({
 .logo-icon {
   width: 40px;
   height: 40px;
-  background: var(--primary-green);
   border-radius: var(--radius-md);
   display: flex;
   align-items: center;

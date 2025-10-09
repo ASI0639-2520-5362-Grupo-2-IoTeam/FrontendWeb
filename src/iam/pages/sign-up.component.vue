@@ -4,8 +4,8 @@ import { useAuthenticationStore} from "../services/Authentication.Store.ts";
 import { SignUpRequest} from "../model/sign-up.request.ts";
 import { useRouter } from 'vue-router';
 import type { AxiosError } from 'axios';
+import logo from '../../assets/pc_logo.png'
 
-import logo from '../../assets/vue.svg';
 
 const username = ref<string>("");
 const password = ref<string>("");
