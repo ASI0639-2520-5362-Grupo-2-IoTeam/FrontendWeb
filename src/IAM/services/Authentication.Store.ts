@@ -88,8 +88,9 @@ export const useAuthenticationStore = defineStore("authentication", {
                 const response = await new AuthenticationService().signUp(payload);
                 // Registro exitoso - el backend devuelve { id, email, role }
                 // Guardar los datos del usuario registrado
-                const { uuid, email, role } = response.data;
-                localStorage.setItem('userUuid', uuid);
+                const { id, username, email, role } = response.data;
+                localStorage.setItem('userUuid', id);
+                localStorage.setItem('username', username);
                 localStorage.setItem('email', email);
                 localStorage.setItem('role', role);
                 return response.data;
@@ -133,6 +134,46 @@ export const useAuthenticationStore = defineStore("authentication", {
                 localStorage.removeItem('role');
                 throw error;
             }
+        },
+
+        async signInWithGoogle(router: Router, toast: ToastObject, googleToken: string): Promise<void> {
+            try {
+                const response = await new AuthenticationService().signInWithGoogle(googleToken);
+                const { token, user } = response.data as any;
+
+                this.persistSession({
+                    token,
+                    uuid: user.id,
+                    email: user.email,
+                    role: user.role,
+                });
+
+                toast.add({
+                    severity: "success",
+                    summary: "Inicio de sesión con Google exitoso",
+                    life: 2500,
+                });
+                router.push({ name: "Dashboard" });
+            } catch (error) {
+                console.error('[AuthStore] Error al iniciar sesión con Google:', error);
+                toast.add({
+                    severity: "error",
+                    summary: "Error de Google",
+                    life: 3000,
+                });
+            }
+        },
+
+        persistSession({ token, uuid, email, role }: any) {
+            this.token = token;
+            this.uuid = uuid;
+            this.email = email;
+            this.isSignedIn = true;
+            this.roles = [role];
+            localStorage.setItem('token', token);
+            localStorage.setItem('userUuid', uuid);
+            localStorage.setItem('email', email);
+            localStorage.setItem('role', role);
         },
 
         /** Cierra la sesión del usuario. */

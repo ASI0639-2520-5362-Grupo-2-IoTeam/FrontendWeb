@@ -1,8 +1,11 @@
 import http from "../../shared/services/http-common.ts";
 import type { AxiosResponse } from 'axios';
+import axios from "axios";
+import.meta.env.VITE_API_URL
 
 // Interfaces adaptadas a tu backend
 export interface SignUpRequest {
+    username: string;
     email: string;
     password: string;
     role: string; // "USER" por defecto
@@ -15,6 +18,7 @@ export interface SignInRequest {
 
 export interface RegisterResponse {
     id: string;
+    username: string;
     email: string;
     role: string;
 }
@@ -36,6 +40,7 @@ function decodeJWT(token: string): { sub: string; role: string; iat: number; exp
         return null;
     }
 }
+
 
 export class AuthenticationService {
     async signUp(signUpRequest: SignUpRequest): Promise<AxiosResponse<RegisterResponse>> {
@@ -68,4 +73,10 @@ export class AuthenticationService {
 
         return response as any;
     }
+
+
+    async signInWithGoogle(googleToken: string) {
+        return axios.post(`${import.meta.env.VITE_API_URL}/auth/google/login`, { googleToken });
+    }
 }
+
