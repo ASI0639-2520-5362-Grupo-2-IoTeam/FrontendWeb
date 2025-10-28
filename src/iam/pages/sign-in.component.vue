@@ -3,14 +3,13 @@ import { ref } from 'vue';
 import { useAuthenticationStore} from "../services/Authentication.Store.ts";
 import { SignInRequest} from "../model/sign-in.request.ts";
 import { useRouter } from 'vue-router';
-
 import { useToast } from 'primevue/usetoast';
 import type { AxiosError } from 'axios';
-
-import logo from '../../assets/pc_logo.png'
+import logo from '../../assets/vue.svg';
+import { onMounted } from 'vue';
 
 // --- State (ref) ---
-const email = ref<string>(""); // Cambiado de username a email
+const email = ref<string>("");
 const password = ref<string>("");
 const submitted = ref<boolean>(false);
 const errorMessage = ref<string>("");
@@ -30,8 +29,8 @@ async function onSignIn(): Promise<void> {
   submitted.value = true;
   errorMessage.value = "";
 
-  if (email.value && password.value) { // Cambiado de username a email
-    let signInRequest = new SignInRequest(email.value, password.value); // Cambiado de username a email
+  if (email.value && password.value) {
+    let signInRequest = new SignInRequest(email.value, password.value);
 
     try {
       // Pasamos las dependencias (router y toast) al store
@@ -44,10 +43,39 @@ async function onSignIn(): Promise<void> {
           axiosError.response?.data?.message || "Error al iniciar sesión. Inténtalo de nuevo.";
     }
   } else {
-    errorMessage.value = "Correo electrónico y contraseña son requeridos."; // Actualizado el mensaje
+    errorMessage.value = "Email y contraseña son requeridos.";
   }
 }
-</script>
+
+onMounted(() => {
+  window.google?.accounts.id.initialize({
+    client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
+    callback: handleGoogleCallback,
+  });
+
+  window.google?.accounts.id.renderButton(
+      document.getElementById("googleSignInDiv"),
+      { theme: "outline", size: "large", text: "continue_with", shape: "pill" }
+  );
+});
+
+// Handler del token recibido desde Google
+async function handleGoogleCallback(response: any) {
+  const googleToken = response.credential;
+  if (!googleToken) return;
+
+  try {
+    await authenticationStore.signInWithGoogle(router, toast, googleToken);
+  } catch (e) {
+    toast.add({
+      severity: "error",
+      summary: "Error",
+      detail: "No se pudo iniciar sesión con Google",
+      life: 3000,
+    });
+  }
+}
+</script>-->
 
 <template>
   <div class="container">
@@ -60,9 +88,9 @@ async function onSignIn(): Promise<void> {
         <div class="field mt-5">
           <div class="p-float-label">
             <InputText id="email" v-model="email" :class="{'p-invalid': submitted && !email}"/>
-            <label for="email">Correo electrónico</label>
+            <label for="email">Email</label>
           </div>
-          <small v-if="submitted && !email" class="p-invalid">Correo electrónico es requerido.</small>
+          <small v-if="submitted && !email" class="p-invalid">Email es requerido.</small>
         </div>
         <div class="field mt-5">
           <div class="p-float-label">
@@ -79,6 +107,10 @@ async function onSignIn(): Promise<void> {
       </div>
       <div class="button-container">
         <Button class="btn-register" type="submit">Iniciar sesión</Button>
+      </div>
+
+      <div class="button-container">
+        <div id="googleSignInDiv" class="google-btn"></div>
       </div>
       <small v-if="errorMessage" class="p-error block mt-2">{{ errorMessage }}</small>
     </form>

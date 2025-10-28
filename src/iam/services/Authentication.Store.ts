@@ -54,26 +54,18 @@ export const useAuthenticationStore = defineStore("authentication", {
         },
         /** Inicializa el store desde localStorage (por ejemplo, al recargar la página) */
         initialize() {
-            const token = localStorage.getItem('token') || '';
+            const token = localStorage.getItem('token');
             const userUuid = localStorage.getItem('userUuid');
             console.debug('[AuthStore] initialize userUuid from localStorage:', userUuid);
             if (token && userUuid) {
                 try {
                     const parts = token.split('.');
-                    if (parts.length > 1 && parts[1]) {
-                        const payload = JSON.parse(atob(parts[1]));
-                        this.token = token;
-                        this.uuid = userUuid; // Usar el UUID guardado
-                        this.email = payload.sub || null;
-                        this.roles = payload.role ? [payload.role] : [];
-                        this.isSignedIn = true;
-                    } else {
-                        this.token = null;
-                        this.uuid = null;
-                        this.email = null;
-                        this.roles = [];
-                        this.isSignedIn = false;
-                    }
+                    const payload = JSON.parse(atob(parts[1]));
+                    this.token = token;
+                    this.uuid = userUuid; // Usar el UUID guardado
+                    this.email = payload.sub || null;
+                    this.roles = payload.role ? [payload.role] : [];
+                    this.isSignedIn = true;
                 } catch (e) {
                     this.token = null;
                     this.uuid = null;
@@ -95,11 +87,12 @@ export const useAuthenticationStore = defineStore("authentication", {
             try {
                 const response = await new AuthenticationService().signUp(payload);
                 // Registro exitoso - el backend devuelve { id, email, role }
-                const { id, email, role } = response.data;
-                const userUuid = id || '';
-                localStorage.setItem('userUuid', userUuid);
-                localStorage.setItem('email', email || '');
-                localStorage.setItem('role', role || '');
+                // Guardar los datos del usuario registrado
+                const { id, username, email, role } = response.data;
+                localStorage.setItem('userUuid', id);
+                localStorage.setItem('username', username);
+                localStorage.setItem('email', email);
+                localStorage.setItem('role', role);
                 return response.data;
             } catch (error) {
                 throw error;
@@ -110,17 +103,23 @@ export const useAuthenticationStore = defineStore("authentication", {
         async signIn(payload: SignInRequest, router: Router, toast: ToastObject): Promise<void> {
             try {
                 const response = await new AuthenticationService().signIn(payload);
-                // Adaptado a la fake API: uuid, email, roles
-                const { token, uuid, email, roles } = response.data as any;
+                // El backend debe devolver el UUID real en 'id'
+                const { token, uuid, email, role } = response.data as any;
+                // Log de depuración para verificar el id recibido
+                console.debug('[AuthStore] signIn response uuid:', uuid);
+                if (!uuid || uuid === 'undefined' || uuid === 'null') {
+                    console.error('[AuthStore] ERROR: El backend no devolvió el UUID en el campo uuid.');
+                }
                 this.uuid = uuid || null;
                 this.email = email;
                 this.token = token;
                 this.isSignedIn = true;
-                this.roles = roles || [];
+                this.roles = [role];
                 localStorage.setItem('token', token);
-                localStorage.setItem('userUuid', uuid || '');
+                localStorage.setItem('userUuid', uuid || ''); // Guardar el UUID real
                 localStorage.setItem('email', email);
-                localStorage.setItem('role', roles ? roles.join(',') : '');
+                localStorage.setItem('role', role);
+                console.debug('[AuthStore] userUuid guardado en localStorage:', localStorage.getItem('userUuid'));
                 toast.add({ severity: "success", summary: "Inicio de sesión exitoso", life: 2000 });
                 router.push({ name: "Dashboard" });
             } catch (error) {
@@ -135,6 +134,46 @@ export const useAuthenticationStore = defineStore("authentication", {
                 localStorage.removeItem('role');
                 throw error;
             }
+        },
+
+        async signInWithGoogle(router: Router, toast: ToastObject, googleToken: string): Promise<void> {
+            try {
+                const response = await new AuthenticationService().signInWithGoogle(googleToken);
+                const { token, user } = response.data as any;
+
+                this.persistSession({
+                    token,
+                    uuid: user.id,
+                    email: user.email,
+                    role: user.role,
+                });
+
+                toast.add({
+                    severity: "success",
+                    summary: "Inicio de sesión con Google exitoso",
+                    life: 2500,
+                });
+                router.push({ name: "Dashboard" });
+            } catch (error) {
+                console.error('[AuthStore] Error al iniciar sesión con Google:', error);
+                toast.add({
+                    severity: "error",
+                    summary: "Error de Google",
+                    life: 3000,
+                });
+            }
+        },
+
+        persistSession({ token, uuid, email, role }: any) {
+            this.token = token;
+            this.uuid = uuid;
+            this.email = email;
+            this.isSignedIn = true;
+            this.roles = [role];
+            localStorage.setItem('token', token);
+            localStorage.setItem('userUuid', uuid);
+            localStorage.setItem('email', email);
+            localStorage.setItem('role', role);
         },
 
         /** Cierra la sesión del usuario. */

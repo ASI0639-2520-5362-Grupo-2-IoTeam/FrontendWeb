@@ -8,6 +8,7 @@ import logo from '../../assets/pc_logo.png'
 
 
 const username = ref<string>("");
+const email = ref<string>("");
 const password = ref<string>("");
 const submitted = ref<boolean>(false);
 const errorMessage = ref<string>("");
@@ -28,7 +29,8 @@ async function onSignUp(): Promise<void> {
     return;
   }
 
-  const signUpRequest = new SignUpRequest(username.value, password.value);
+  const signUpRequest = new SignUpRequest(username.value, email.value, password.value);
+
 
   try {
     await authenticationStore.signUp(signUpRequest);
@@ -61,6 +63,17 @@ async function onSignUp(): Promise<void> {
             <label for="username">Usuario</label>
           </div>
           <small v-if="submitted && !username" class="p-invalid">El nombre de usuario es obligatorio.</small>
+        </div>
+        <div class="field mt-5">
+          <div class="p-float-label">
+            <InputText
+                id="emain"
+                v-model="email"
+                :class="{'p-invalid': submitted && !email}"
+            />
+            <label for="emain">Email</label>
+          </div>
+          <small v-if="submitted && !username" class="p-invalid">El email es obligatorio.</small>
         </div>
         <div class="field mt-5">
           <div class="p-float-label">

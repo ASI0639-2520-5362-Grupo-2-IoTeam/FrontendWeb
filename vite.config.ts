@@ -7,13 +7,12 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      '/api': {
-        target: 'https://fakeapiplant.vercel.app',
+      '/api/v1': {
+        target: 'http://localhost:8090',
         changeOrigin: true,
-        secure: true,
-        ws: false,
-        // remove the /api prefix when forwarding to the target
-        rewrite: (path) => path.replace(/^\/api/, '')
+        secure: false,
+        ws: true,
+        rewrite: (path) => path.replace(/^\/api/, '/api')
       }
     }
   }
