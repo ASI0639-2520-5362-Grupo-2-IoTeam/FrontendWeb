@@ -1,8 +1,11 @@
+import http from "../../shared/services/http-common.ts";
 import type { AxiosResponse } from 'axios';
-import { BaseApi, ENDPOINTS } from '../../shared/infrastructure/base-endpoint';
+import axios from "axios";
+import.meta.env.VITE_API_URL
 
 // Interfaces adaptadas a tu backend
 export interface SignUpRequest {
+    username: string;
     email: string;
     password: string;
     role: string; // "USER" por defecto
@@ -15,6 +18,7 @@ export interface SignInRequest {
 
 export interface RegisterResponse {
     id: string;
+    username: string;
     email: string;
     role: string;
 }
@@ -22,42 +26,57 @@ export interface RegisterResponse {
 // El backend solo devuelve { token }
 export interface LoginResponse {
     token: string;
-    uuid: string;
-    email: string;
-    roles: string[];
 }
 
-export class AuthenticationService {
-    private baseApi: BaseApi;
-
-    constructor() {
-        this.baseApi = new BaseApi();
+// Helper para decodificar JWT y extraer payload
+function decodeJWT(token: string): { sub: string; role: string; iat: number; exp: number } | null {
+    try {
+        const parts = token.split('.');
+        if (parts.length !== 3) return null;
+        const payload = JSON.parse(atob(parts[1]));
+        return payload;
+    } catch (e) {
+        console.error('Error decoding JWT:', e);
+        return null;
     }
+}
 
+
+export class AuthenticationService {
     async signUp(signUpRequest: SignUpRequest): Promise<AxiosResponse<RegisterResponse>> {
-        // POST /auth/register
-        return this.baseApi.http.post<RegisterResponse>(ENDPOINTS.AUTH_REGISTER, signUpRequest);
+        // POST /api/auth/register (el baseURL ya incluye /api)
+        return http.post<RegisterResponse>(`/auth/register`, signUpRequest);
     }
 
     async signIn(signInRequest: SignInRequest): Promise<AxiosResponse<LoginResponse>> {
-        // Usar la fake API para buscar el usuario por email y validar password
-        const { email, password } = signInRequest;
-        const response = await this.baseApi.http.get<any[]>(`${ENDPOINTS.USERS}?useremail=${encodeURIComponent(email)}`);
-        const users = response.data;
-        if (users.length === 0 || users[0].password !== password) {
-            // Simular error de login si no existe usuario o password no coincide
-            throw { response: { data: { message: 'Credenciales inválidas' } } };
+        // POST /api/auth/login (el baseURL ya incluye /api)
+        const response = await http.post<LoginResponse>(`/auth/login`, signInRequest);
+
+        // Decodificar el JWT para extraer email y role
+        const token = response.data.token;
+        const payload = decodeJWT(token);
+
+        // Guardar el token en localStorage para el interceptor
+        if (token) {
+            localStorage.setItem('token', token);
         }
-        const user = users[0];
-        // Simular un token JWT (solo para frontend)
-        const fakeToken = btoa(`${user.useremail}:${user.roles.join(',')}`);
-        return {
-            data: {
-                token: fakeToken,
-                uuid: user.id,
-                email: user.useremail,
-                roles: user.roles
+
+        // No sobrescribir el id con el email, solo agregar email y role si faltan
+        if (payload) {
+            if (!(response.data as any).email) {
+                (response.data as any).email = payload.sub;
             }
-        } as AxiosResponse<LoginResponse>;
+            if (!(response.data as any).role) {
+                (response.data as any).role = payload.role;
+            }
+        }
+
+        return response as any;
+    }
+
+
+    async signInWithGoogle(googleToken: string) {
+        return axios.post(`${import.meta.env.VITE_API_URL}/auth/google/login`, { googleToken });
     }
 }
+
