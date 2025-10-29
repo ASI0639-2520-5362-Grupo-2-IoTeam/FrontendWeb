@@ -5,5 +5,4 @@
 </template>
 
 <script setup lang="ts">
-// futuro: sidebar o header específico para subscripciones
 </script>

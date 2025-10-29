@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import {ref, onMounted} from 'vue';
 import { useRouter } from 'vue-router';
 import Button from 'primevue/button';
 import Dialog from 'primevue/dialog';
@@ -20,6 +20,7 @@ const error = ref<string | null>(null);
 const showPaymentDialog = ref(false);
 const showChangePlanDialog = ref(false);
 const selectedPlan = ref<string | null>(null);
+const paymentContext = ref< 'REACTIVATE' | 'NEW' | null >(null);
 
 // --- Cargar suscripción ---
 const loadSubscription = async () => {
@@ -38,7 +39,7 @@ const loadSubscription = async () => {
 // --- Cancelar suscripción ---
 const cancelSubscription = async () => {
   try {
-    console.log('Cancelando suscripción del usuario:', userId);
+    //console.log('Cancelando suscripción del usuario:', userId);
     await subscriptionService.cancel(userId);
     await loadSubscription();
   } catch (err) {
@@ -48,20 +49,38 @@ const cancelSubscription = async () => {
 
 // --- Simular pago / reactivar ---
 const reactivateSubscription = async () => {
+  paymentContext.value = 'REACTIVATE';
   showPaymentDialog.value = true;
 };
 
 // --- Confirmar pago / reactivar ---
+// --- Confirmar pago / reactivar ---
 const confirmPayment = async () => {
   showPaymentDialog.value = false;
+
   try {
-    console.log('Reactivando suscripción del usuario:', userId);
-    await subscriptionService.reactivate(userId);
+    const status = subscription.value?.status;
+    console.log('Estado previo al pago:', status);
+
+    if (status === 'CANCELLED') {
+      console.log('Reactivando suscripción en backend...');
+      try {
+        await subscriptionService.reactivate(userId);
+        console.log('Reactivación completada correctamente.');
+      } catch (reactivateError) {
+        console.error('Error al reactivar en backend:', reactivateError);
+      }
+    } else {
+      console.log('Pago simulado confirmado (plan nuevo o activo).');
+    }
+
     await loadSubscription();
+
   } catch (err) {
-    console.error(err);
+    console.error('Error en confirmPayment:', err);
   }
 };
+
 
 // --- Cambiar plan ---
 const openChangePlanDialog = () => {
@@ -69,17 +88,30 @@ const openChangePlanDialog = () => {
 };
 
 const confirmPlanChange = async () => {
-  if (!selectedPlan.value || !subscription.value) return;
+  if (!selectedPlan.value) return;
   try {
-    console.log('Cambiando plan a:', selectedPlan.value);
+    const currentPlan = subscription.value?.planType || 'NONE';
+    const currentStatus = subscription.value?.status || 'NONE';
+    console.log('Plan actual:', currentPlan, '| Estado actual:', currentStatus);
+
+    const wasFreeOrCancelled = !currentPlan || currentPlan === 'NONE' || currentStatus === 'CANCELLED';
+
     const response = await subscriptionService.subscribeOrChangePlan({
       userId,
       planType: selectedPlan.value
     });
     console.log('Respuesta change plan:', response);
-    await loadSubscription();
+
+    if (wasFreeOrCancelled && selectedPlan.value !== 'NONE') {
+      //console.log('Mostrando modal de pago (venía de Free o Cancelled)');
+      showPaymentDialog.value = true;
+    } else {
+      //console.log('Cambio normal de plan, actualizando datos...');
+      await loadSubscription();
+    }
+
   } catch (err) {
-    console.error(err);
+    console.error('Error cambiando plan:', err);
   } finally {
     showChangePlanDialog.value = false;
   }
@@ -114,17 +146,17 @@ onMounted(() => {
 
     <div v-else-if="subscription">
       <div class="card">
-        <h2>Current Plan: {{ subscription.planName }}</h2>
-
-        <p>
+        <h2>Current Plan: {{ subscription.planName === 'NONE' ? 'FreePlan' : subscription.planName }}</h2>
+        <p v-if="subscription?.planName !== 'NONE'">
           {{
             subscription.status === 'ACTIVE'
                 ? '🟢 Active'
                 : subscription.status === 'CANCELLED'
-                    ? '🔴 Cancelled'
+                    ? '🔴 Cancelled — You won’t be charged again and your benefits remain until one month after your last payment.'
                     : `⚪ ${subscription.status}`
           }}
         </p>
+
 
         <p
             v-if="subscription?.planType !== 'NONE' && subscription?.status === 'ACTIVE' && subscription?.nextBillingDate"
@@ -139,12 +171,12 @@ onMounted(() => {
           }}
         </p>
         <p v-if="subscription?.planName === 'NONE'" class="text-gray-500 italic">
-          No tienes ningún plan activo. Suscríbete para comenzar.
+          You are on FreePlan. Choose a paid plan to enable features.
         </p>
 
 
         <div class="actions">
-          <!-- Botón para cancelar (solo si está activa y tiene plan real) -->
+          <!-- Botón para cancelar -->
           <Button
               v-if="subscription?.status === 'ACTIVE' && subscription?.planType !== 'NONE'"
               label="Cancelar suscripción"
@@ -153,25 +185,27 @@ onMounted(() => {
               @click="cancelSubscription"
           />
 
-          <!-- Botón para reactivar (solo si está cancelada y tiene plan real) -->
+          <!-- Botón para reactivar -->
           <Button
-              v-if="subscription?.status === 'CANCELLED' && subscription?.planType !== 'NONE'"
+              v-if="subscription?.status === 'CANCELLED' && subscription?.planName !== 'NONE' && subscription?.planType !== 'NONE'"
               label="Reactivar suscripción"
               icon="pi pi-refresh"
               class="p-button-success"
               @click="reactivateSubscription"
           />
 
-          <!-- Botón para activar o suscribirse (solo si plan = NONE) -->
+
+
+          <!-- Botón para cambiar plan o suscribirse -->
           <Button
               v-if="subscription?.planType === 'NONE'"
-              label="Activar suscripción"
+              label="Elegir Plan"
               icon="pi pi-credit-card"
               class="p-button-success"
               @click="openChangePlanDialog"
           />
 
-          <!-- Botón para cambiar plan (solo si tiene plan real) -->
+          <!-- Botón para cambiar plan -->
           <Button
               v-if="subscription?.planType !== 'NONE'"
               label="Change Plan"

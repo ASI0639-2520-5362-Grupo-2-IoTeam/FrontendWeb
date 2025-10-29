@@ -128,13 +128,24 @@ onMounted(() => {
 
           <!-- Espaciado entre secciones -->
           <div class="plan-info">
-            <p>
+            <p v-if="subscription.status === 'ACTIVE'">
               Next billing date:
               {{ new Date(subscription.nextBillingDate).toLocaleString('en-US', {
               day: '2-digit',
               month: 'long',
               year: 'numeric',
             }) }}
+            </p>
+
+            <!-- Mensaje adicional si está cancelada -->
+            <p v-else-if="subscription.status === 'CANCELLED'" class="text-gray-500 italic">
+              You will keep your benefits until {{
+                new Date(subscription.nextBillingDate).toLocaleString('en-US', {
+                  day: '2-digit',
+                  month: 'long',
+                  year: 'numeric',
+                })
+              }}. No further charges will be made.
             </p>
 
             <p>
