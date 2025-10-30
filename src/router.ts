@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router';
 import { useAuthenticationStore } from './iam/services/Authentication.Store.ts';
 import analyticsRoutes from './analytics/presentation/analytics-routes';
 import plantmanagementRoutes from './plantmanagement/presentation/plantmanagement-routes';
+import subscriptionRoutes from './subscription/presentation/subscription-routes.ts';
 
 const router = createRouter({
     history: createWebHistory(),
@@ -65,7 +66,15 @@ const router = createRouter({
             path: '/community',
             name: 'Community',
             component: () => import('./community/components/Community.vue'),
-        }
+        },
+        {
+            path: '/subscription',
+            component: () => import('./subscription/presentation/views/SubscriptionLayout.vue'),
+            meta: { requiresAuth: true },
+            children: subscriptionRoutes,
+            redirect: { name: 'ManageSubscription' }
+        },
+
     ]
 });
 

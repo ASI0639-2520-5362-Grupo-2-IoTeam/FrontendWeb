@@ -1,9 +1,17 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import {computed, onMounted, ref} from 'vue';
 import Button from 'primevue/button';
 import InputSwitch from 'primevue/inputswitch';
+import { SubscriptionService } from '../../../subscription/infrastructure/Subscription.Service.ts';
+import type { Subscription } from '../../../subscription/domain/model/Subscription.model.ts';
+import { useRouter } from 'vue-router'; //
+import {planTemplates, type PlanType} from '../../../subscription/domain/model/planTemplates.ts';
 
-
+const subscriptionService = new SubscriptionService();
+const userId = localStorage.getItem('userUuid') || 'NO-UUID';
+const router = useRouter();
+//DEVELOP ONLY
+console.log("UUID del usuario autenticado:", userId);
 interface Device {
   id: number;
   name: string;
@@ -29,6 +37,53 @@ const handleManageSubscription = () => {
 const handleAddDevice = () => {
   console.log('Add new device');
 };
+
+// --- Estado de suscripción ---
+const subscription = ref<Subscription | null>(null);
+const loadingSubscription = ref(false);
+const errorSubscription = ref<string | null>(null);
+
+// --- Plan actual (tipado y seguro) ---
+const currentPlan = computed(() => {
+  if (!subscription.value || !subscription.value.plan) return null;
+  const type = subscription.value.plan.type as PlanType;
+  return planTemplates[type];
+});
+// --- Función para obtener la suscripción del usuario ---
+const loadSubscription = async () => {
+  try {
+    loadingSubscription.value = true;
+    const response = await subscriptionService.getByUserId(userId);
+
+    const data = response.data;
+
+    // Adaptar el formato del backend al modelo del frontend
+    subscription.value = {
+      id: data.id,
+      userId: data.userId,
+      plan: {
+        id: 'N/A',
+        type: data.planName as "NONE" | "BASIC" | "PREMIUM",
+        description: '',
+        price: 0,
+      },
+      status: data.status,
+      startDate: data.startDate,
+      endDate: data.endDate,
+      nextBillingDate: data.nextBillingDate,
+    };
+  } catch (error: any) {
+    errorSubscription.value = 'No se pudo cargar la suscripción.';
+    console.error(error);
+  } finally {
+    loadingSubscription.value = false;
+  }
+};
+
+onMounted(() => {
+  loadSubscription();
+});
+
 </script>
 
 <template>
@@ -39,28 +94,85 @@ const handleAddDevice = () => {
     <div class="section">
       <h2 class="section-title">Subscription Plan</h2>
       <div class="card">
-        <div class="plan-header">
-          <div>
-            <h3 class="plan-name">Pro Plan</h3>
-            <p class="plan-description">Unlimited plants and advanced monitoring</p>
+
+        <div v-if="loadingSubscription">Loading subscription...</div>
+
+        <div v-else-if="errorSubscription">
+          {{ errorSubscription }}
+        </div>
+
+        <div v-else-if="subscription && currentPlan">
+          <div class="plan-header">
+            <div>
+              <h2>{{ currentPlan.name }}</h2>
+              <p>{{ currentPlan.description }}</p>
+            </div>
+
+            <div class="plan-price">
+              {{ currentPlan.price > 0 ? `$${currentPlan.price}` : 'Free' }}
+              <span v-if="currentPlan.price > 0">
+            /{{ currentPlan.billingCycle.toLowerCase() }}
+          </span>
+            </div>
           </div>
-          <div class="plan-price">
-            $9.99<span>/month</span>
+
+          <div class="plan-features">
+            <div
+                v-for="(feature, index) in currentPlan.features"
+                :key="index"
+                class="feature"
+            >
+              {{ feature }}
+            </div>
+          </div>
+
+          <!-- Espaciado entre secciones -->
+          <div class="plan-info">
+            <p v-if="subscription.status === 'ACTIVE'">
+              Next billing date:
+              {{ new Date(subscription.nextBillingDate).toLocaleString('en-US', {
+              day: '2-digit',
+              month: 'long',
+              year: 'numeric',
+            }) }}
+            </p>
+
+            <!-- Mensaje adicional si está cancelada -->
+            <p v-else-if="subscription.status === 'CANCELLED'" class="text-gray-500 italic">
+              You will keep your benefits until {{
+                new Date(subscription.nextBillingDate).toLocaleString('en-US', {
+                  day: '2-digit',
+                  month: 'long',
+                  year: 'numeric',
+                })
+              }}. No further charges will be made.
+            </p>
+
+            <p>
+              {{
+                subscription.status === "ACTIVE"
+                    ? "🟢 Status: ACTIVE"
+                    : subscription.status === "CANCELLED"
+                        ? "🔴 Status: CANCELLED"
+                        : `⚪ Status: ${subscription.status}`
+              }}
+            </p>
+
+            <Button
+                label="Manage Subscription"
+                icon="pi pi-cog"
+                class="p-button-rounded p-button-outlined"
+                @click="$router.push({ name: 'ManageSubscription' })"
+            />
           </div>
         </div>
-        <div class="plan-features">
-          <div class="feature">✅ Unlimited plants</div>
-          <div class="feature">✅ Advanced humidity tracking</div>
-          <div class="feature">✅ Custom watering schedules</div>
-          <div class="feature">✅ Priority support</div>
+
+        <div v-else>
+          <p>No active subscription found.</p>
         </div>
-        <Button
-            label="Manage Subscription"
-            outlined
-            @click="handleManageSubscription"
-        />
       </div>
     </div>
+
 
     <!-- Device Management -->
     <div class="section">
@@ -379,4 +491,24 @@ const handleAddDevice = () => {
     gap: var(--spacing-md);
   }
 }
+.plan-features {
+  margin-top: 1rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.plan-info {
+  margin-top: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.plan-info p {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
 </style>
