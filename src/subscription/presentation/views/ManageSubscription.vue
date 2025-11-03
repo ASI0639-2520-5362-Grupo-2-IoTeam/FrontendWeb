@@ -237,7 +237,9 @@ onMounted(() => {
         >
           <h3>{{ plan.name }}</h3>
           <p>{{ plan.description }}</p>
-          <strong>${{ plan.price }} / {{ plan.billingCycle }}</strong>
+          <strong>
+            {{ plan.price > 0 ? `S/.${plan.price} / ${plan.billingCycle}` : 'Free' }}
+          </strong>
         </div>
       </div>
 
@@ -257,52 +259,102 @@ onMounted(() => {
 .manage-subscription {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
-  padding: 1rem;
+  gap: var(--spacing-lg);
+  padding: var(--spacing-md);
+  background: var(--bg-primary);
+  color: var(--text-primary);
 }
 
 .back-button {
-  margin-bottom: 0.5rem;
+  margin-bottom: var(--spacing-sm);
 }
 
+/* Tarjeta principal */
 .card {
-  padding: 1.5rem;
-  border-radius: 1rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  background: #fff;
+  padding: var(--spacing-lg);
+  border-radius: var(--radius-lg);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-md);
+  transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }
 
+/* Acciones */
 .actions {
-  margin-top: 1.5rem;
+  margin-top: var(--spacing-lg);
   display: flex;
-  gap: 1rem;
+  gap: var(--spacing-md);
   flex-wrap: wrap;
 }
 
+/* Lista de planes */
 .plans-list {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-  margin: 1rem 0;
+  gap: var(--spacing-md);
+  margin: var(--spacing-md) 0;
 }
 
+/* Plan individual */
 .plan-option {
-  border: 2px solid #ddd;
-  border-radius: 0.75rem;
-  padding: 1rem;
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-md);
   cursor: pointer;
-  transition: border 0.2s ease;
+  background: var(--bg-secondary);
+  transition: all 0.2s ease;
+}
+
+.plan-option:hover {
+  border-color: var(--primary-green);
+  background: var(--primary-green-light);
 }
 
 .plan-option.selected {
-  border-color: #22c55e;
-  background: #f0fdf4;
+  border-color: var(--primary-green);
+  background: var(--primary-green-light);
 }
 
+/* Diálogo */
 .dialog-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 0.75rem;
-  margin-top: 1rem;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-md);
+}
+
+/* Títulos */
+.title, h2, h3 {
+  color: var(--text-primary);
+  transition: color 0.3s ease;
+}
+
+/* Texto auxiliar */
+.text-gray-500 {
+  color: var(--text-secondary);
+  font-style: italic;
+}
+.p-dialog {
+  background: var(--bg-card) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border-color) !important;
+  box-shadow: var(--shadow-lg) !important;
+}
+
+.p-dialog .p-dialog-header {
+  background: var(--bg-card) !important;
+  color: var(--text-primary) !important;
+  border-bottom: 1px solid var(--border-color) !important;
+}
+
+.p-dialog .p-dialog-content {
+  background: var(--bg-card) !important;
+  color: var(--text-primary) !important;
+}
+
+.p-dialog .p-dialog-footer {
+  background: var(--bg-card) !important;
+  border-top: 1px solid var(--border-color) !important;
 }
 </style>

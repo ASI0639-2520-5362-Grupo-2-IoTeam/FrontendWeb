@@ -117,6 +117,16 @@ body {
     line-height: 1.5;
     transition: background-color 0.3s ease, color 0.3s ease;
 }
+body.dark {
+    --bg-primary: #0f1115;
+    --bg-secondary: #1b1d22;
+    --bg-card: #23262d;
+    --text-primary: #f9fafb;
+    --text-secondary: #a1a1aa;
+    --border-color: #3f3f46;
+    --primary-green: #22c55e;
+    --primary-green-light: #14532d;
+}
 
 /* Estilos para sobrescribir PrimeVue si es necesario */
 .p-button {
@@ -173,3 +183,35 @@ body {
 .p-sm { padding: var(--spacing-sm); }
 .p-md { padding: var(--spacing-md); }
 .p-lg { padding: var(--spacing-lg); }
+
+.p-dialog,
+.p-dialog .p-dialog-content,
+.p-dialog .p-dialog-header,
+.p-dialog .p-dialog-footer,
+.plan-option {
+    background: var(--bg-card);
+    color: var(--text-primary);
+    border-color: var(--border-color);
+}
+
+.p-dialog-mask,
+.p-dialog-wrapper {
+    background: rgba(0, 0, 0, 0.6) !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+.p-dialog {
+    border: 1px solid var(--border-color) !important;
+    background: var(--bg-card) !important;
+    color: var(--text-primary) !important;
+    box-shadow: var(--shadow-lg) !important;
+    border-radius: var(--radius-xl) !important;
+    overflow: hidden !important;
+}
+
+.p-dialog .p-dialog-header,
+.p-dialog .p-dialog-content,
+.p-dialog .p-dialog-footer {
+    border-radius: 0 !important;
+}

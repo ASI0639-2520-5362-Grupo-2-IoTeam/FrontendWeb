@@ -109,7 +109,7 @@ onMounted(() => {
             </div>
 
             <div class="plan-price">
-              {{ currentPlan.price > 0 ? `$${currentPlan.price}` : 'Free' }}
+              {{ currentPlan.price > 0 ? `S/.${currentPlan.price}` : 'Free' }}
               <span v-if="currentPlan.price > 0">
             /{{ currentPlan.billingCycle.toLowerCase() }}
           </span>
