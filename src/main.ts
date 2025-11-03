@@ -10,34 +10,41 @@ import 'primeicons/primeicons.css'
 import './style.css'
 import router from './router';
 import { createPinia } from 'pinia';
+import './firebase.ts';
 
+// Crear la app
 const app = createApp(App);
 
-// Registrar componentes de PrimeVue globalmente
+// Registrar componentes globales
 app.component('Button', Button);
 app.component('InputText', InputText);
 app.component('Toast', Toast);
 
+// Configurar PrimeVue
 app.use(PrimeVue, {
     theme: {
-        preset: Aura
-    }
+        preset: Aura,
+    },
 });
 
-// Registrar ToastService
+// Servicios globales
 app.use(ToastService);
 
-// Registrar Pinia antes de usar los stores
+// Configurar Pinia
 const pinia = createPinia();
 app.use(pinia);
 
-// Inicializar el store de autenticación al arrancar la app
-import { useAuthenticationStore } from './iam/services/Authentication.Store.ts';
+// Inicializar store de autenticación
+import { useAuthenticationStore } from './iam/services/Authentication.Store';
 const authStore = useAuthenticationStore();
 try {
-  authStore.initialize();
-} catch (e) { /* ignore */ }
+    authStore.initialize();
+} catch (e) {
+    console.warn('No se pudo inicializar el store de autenticación', e);
+}
 
+// Usar router
 app.use(router);
 
+// Montar la app
 app.mount('#app');
