@@ -39,7 +39,13 @@ const router = createRouter({
             path: '/plants',
             component: () => import('./plantmanagement/presentation/views/PlantManagementLayout.vue'),
             meta: { requiresAuth: true },
-            children: plantmanagementRoutes
+            children: [
+                {
+                    path: '',
+                    redirect: { name: 'PlantsList' }
+                },
+                ...plantmanagementRoutes
+            ]
         },
         // Rutas anidadas para Analytics
         {

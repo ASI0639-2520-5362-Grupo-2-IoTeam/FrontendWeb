@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
@@ -165,6 +165,7 @@ const getLatestHumidity = (plant: Plant): number | string => {
     </div>
 
     <div v-if="isLoading" class="loading-state">
+      <div class="loading-icon">🌱</div>
       <p>Loading your plants...</p>
     </div>
     <div v-else-if="filteredPlants.length > 0" class="plants-grid">
@@ -458,6 +459,12 @@ const getLatestHumidity = (plant: Plant): number | string => {
   margin-bottom: var(--spacing-lg);
 }
 
+.loading-icon {
+  font-size: 64px;
+  margin-bottom: var(--spacing-lg);
+  animation: bounce 2s infinite;
+}
+
 .empty-title {
   font-size: var(--font-size-xl);
   font-weight: var(--font-weight-bold);
@@ -483,6 +490,18 @@ const getLatestHumidity = (plant: Plant): number | string => {
   background: #7ab531 !important;
 }
 
+
+@keyframes bounce {
+  0%, 20%, 50%, 80%, 100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-10px);
+  }
+  60% {
+    transform: translateY(-5px);
+  }
+}
 
 @media (max-width: 768px) {
   .header {
