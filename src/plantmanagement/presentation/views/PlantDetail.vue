@@ -4,14 +4,22 @@ import { useRouter, useRoute } from 'vue-router';
 import Button from 'primevue/button';
 import Card from 'primevue/card';
 import Avatar from 'primevue/avatar';
+import ConfirmDialog from 'primevue/confirmdialog';
+import Toast from 'primevue/toast';
+import ProgressSpinner from 'primevue/progressspinner';
+import { useConfirm } from "primevue/useconfirm";
+import { useToast } from "primevue/usetoast";
 import { PlantsService } from '../../infrastructure/plats.services.ts';
 import type { Plant as PlantEntity, Metric } from '../../domain/model/plants.entity.ts';
 
 const router = useRouter();
 const route = useRoute();
 const plantsService = new PlantsService();
+const confirm = useConfirm();
+const toast = useToast();
 
 const plant = ref<PlantEntity | null>(null);
+const isLoading = ref(true);
 const plantId = Number(route.params.id);
 
 onMounted(async () => {
@@ -21,6 +29,8 @@ onMounted(async () => {
   } catch (err) {
     console.error('Error loading plant:', err);
     plant.value = null;
+  } finally {
+    isLoading.value = false;
   }
 });
 
@@ -35,18 +45,26 @@ const goBack = () => {
   router.push('/plants');
 };
 
-const handleDelete = async () => {
+const handleDelete = () => {
   if (!plant.value) return;
-  const confirmed = window.confirm('Are you sure you want to delete this plant? This action cannot be undone.');
-  if (!confirmed) return;
-  try {
-    await plantsService.deletePlant(plant.value.id);
-    window.alert('Plant deleted successfully.');
-    router.push('/plants');
-  } catch (err) {
-    console.error('Error deleting plant:', err);
-    window.alert('There was an error deleting the plant.');
-  }
+
+  confirm.require({
+    message: 'Are you sure you want to delete this plant? This action cannot be undone.',
+    header: 'Confirm Deletion',
+    icon: 'pi pi-exclamation-triangle',
+    accept: async () => {
+      try {
+        await plantsService.deletePlant(plant.value!.id);
+        toast.add({ severity: 'success', summary: 'Success', detail: 'Plant deleted successfully', life: 3000 });
+        setTimeout(() => router.push('/plants'), 1500);
+      } catch (err) {
+        toast.add({ severity: 'error', summary: 'Error', detail: 'There was an error deleting the plant', life: 3000 });
+      }
+    },
+    reject: () => {
+      toast.add({ severity: 'info', summary: 'Cancelled', detail: 'Deletion cancelled', life: 3000 });
+    }
+  });
 };
 
 function formatDate(dateStr: string | null): string {
@@ -62,6 +80,8 @@ function formatDate(dateStr: string | null): string {
 
 <template>
   <div class="plant-detail-view">
+    <Toast />
+    <ConfirmDialog />
     <Button
         icon="pi pi-arrow-left"
         label="Back to Plants"
@@ -70,7 +90,12 @@ function formatDate(dateStr: string | null): string {
         class="back-button"
     />
 
-    <div v-if="plant" class="content-grid">
+    <div v-if="isLoading" class="loading-state">
+      <ProgressSpinner />
+      <h2>Loading sensor data...</h2>
+    </div>
+
+    <div v-else-if="plant" class="content-grid">
       <!-- Left Column: Image and Bio -->
       <div class="left-column">
         <Card class="plant-card">
@@ -198,13 +223,22 @@ function formatDate(dateStr: string | null): string {
   max-width: 1400px;
   margin: 2rem auto;
   padding: 0 1rem;
-  background-color: #f5f7fa;
-  color: #1f2937;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem;
+  gap: 1rem;
 }
 
 .back-button {
   margin-bottom: 2rem;
-  color: #6b7280;
+  color: var(--text-secondary);
 }
 
 .content-grid {
@@ -220,11 +254,11 @@ function formatDate(dateStr: string | null): string {
 }
 
 .plant-card, .metric-card, .watering-card {
-  background-color: #ffffff;
+  background-color: var(--bg-card);
   border-radius: 1rem;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.05);
-  border: 1px solid #e6eef8;
-  color: #1f2937;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
 }
 
 .plant-image-container {
@@ -248,12 +282,12 @@ function formatDate(dateStr: string | null): string {
 .plant-name {
   font-size: 2rem;
   font-weight: 700;
-  color: #1f2937;
+  color: var(--text-primary);
 }
 
 .plant-type {
   font-size: 1.1rem;
-  color: #6b7280;
+  color: var(--text-secondary);
   margin-top: 0.25rem;
 }
 
@@ -262,14 +296,14 @@ function formatDate(dateStr: string | null): string {
   justify-content: center;
   align-items: center;
   gap: 0.5rem;
-  color: #6b7280;
+  color: var(--text-secondary);
   margin-top: 0.5rem;
 }
 
 .plant-bio {
   font-size: 1rem;
   line-height: 1.6;
-  color: #6b7280;
+  color: var(--text-secondary);
   text-align: center;
   padding: 0 1rem;
 }
@@ -313,12 +347,12 @@ function formatDate(dateStr: string | null): string {
 
 .metric-label {
   font-size: 0.9rem;
-  color: #6b7280;
+  color: var(--text-secondary);
 }
 .metric-value {
   font-size: 1.5rem;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--text-primary);
 }
 
 .watering-details {
@@ -336,18 +370,18 @@ function formatDate(dateStr: string | null): string {
 
 .watering-item i {
   font-size: 2rem;
-  color: #4caf50;
+  color: var(--status-success);
 }
 
 .watering-label {
   font-size: 0.9rem;
-  color: #6b7280;
+  color: var(--text-secondary);
 }
 .watering-item p {
   font-size: 1.1rem;
   font-weight: 600;
   margin: 0.25rem 0 0 0;
-  color: #1f2937;
+  color: var(--text-primary);
 }
 
 .actions-footer {
@@ -360,13 +394,69 @@ function formatDate(dateStr: string | null): string {
 .not-found {
   text-align: center;
   padding: 4rem;
-  background-color: #ffffff;
-  color: #1f2937;
+  background-color: var(--bg-card);
+  color: var(--text-primary);
 }
 
 @media (max-width: 992px) {
   .content-grid {
     grid-template-columns: 1fr;
   }
+}
+
+/* Dark mode overrides: cambia fondos y colores cuando el sistema está en modo oscuro */
+@media (prefers-color-scheme: dark) {
+  .plant-detail-view {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+  }
+
+  .plant-card, .metric-card, .watering-card {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    box-shadow: var(--shadow-md);
+  }
+
+  /* Forzar sobre los elementos internos de PrimeVue (p-card) en caso de que el tema los pinte en claro */
+  :deep(.p-card) {
+    background-color: var(--bg-card) !important;
+    border-color: var(--border-color) !important;
+    color: var(--text-primary) !important;
+    box-shadow: var(--shadow-md) !important;
+  }
+
+  /* Contenido y títulos internos de la card */
+  :deep(.p-card .p-card-title), :deep(.p-card .p-card-content) {
+    color: inherit !important;
+  }
+
+   .plant-image-container {
+     /* opcional: añadir un fondo oscuro por si la imagen no carga */
+     background-color: var(--bg-primary);
+   }
+
+   .plant-name, .metric-value {
+     color: var(--text-primary);
+   }
+
+   .plant-type, .plant-location, .plant-bio, .metric-label, .watering-label {
+     color: var(--text-secondary);
+   }
+
+   .watering-item i {
+     color: var(--status-info); /* color primario claro para íconos */
+   }
+
+   .not-found {
+     background-color: var(--bg-card);
+     color: var(--text-primary);
+   }
+
+   /* Ajustes menores para los iconos circulares para mejor contraste en oscuro */
+   .metric-icon.temp { background-color: #b25b00; }
+   .metric-icon.humidity { background-color: #1e6fb8; }
+   .metric-icon.light { background-color: #b38600; }
+   .metric-icon.soil { background-color: #6b4f44; }
 }
 </style>

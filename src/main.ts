@@ -6,6 +6,7 @@ import { Button } from "primevue";
 import InputText from 'primevue/inputtext';
 import Toast from 'primevue/toast';
 import ToastService from 'primevue/toastservice';
+import ConfirmationService from 'primevue/confirmationservice';
 import 'primeicons/primeicons.css'
 import './style.css'
 import router from './router';
@@ -26,6 +27,7 @@ app.use(PrimeVue, {
 
 // Registrar ToastService
 app.use(ToastService);
+app.use(ConfirmationService);
 
 // Registrar Pinia antes de usar los stores
 const pinia = createPinia();

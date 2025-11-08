@@ -98,6 +98,32 @@
     --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.4);
 }
 
+/* Forzar estilo oscuro para tarjetas de PrimeVue cuando se usa data-theme="dark" */
+[data-theme="dark"] .p-card {
+    background-color: var(--bg-card, #242424) !important;
+    border-color: var(--border-color, #3a3a3a) !important;
+    color: var(--text-primary, #ffffff) !important;
+    box-shadow: var(--shadow-md) !important;
+}
+[data-theme="dark"] .p-card .p-card-title,
+[data-theme="dark"] .p-card .p-card-content {
+    color: inherit !important;
+}
+
+/* También cubrir el caso en que el usuario usa prefers-color-scheme (sin data-theme) */
+@media (prefers-color-scheme: dark) {
+    .p-card {
+        background-color: #242424 !important;
+        border-color: #3a3a3a !important;
+        color: #ffffff !important;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.6) !important;
+    }
+    .p-card .p-card-title,
+    .p-card .p-card-content {
+        color: inherit !important;
+    }
+}
+
 /* Reset básico */
 * {
     margin: 0;
