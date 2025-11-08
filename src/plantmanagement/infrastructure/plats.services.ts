@@ -30,15 +30,16 @@ export class PlantsService {
             name: raw.name ?? '',
             type: raw.type ?? '',
             imgUrl: raw.imgUrl ?? '',
-            humidity: raw.humidity != null ? Number(raw.humidity) : 0,
-            lastWatered: raw.lastWatered ?? '',
-            nextWatering: raw.nextWatering ?? '',
-            status: this.normalizeStatus(raw.status),
             bio: raw.bio ?? '',
             location: raw.location ?? '',
+            status: this.normalizeStatus(raw.status),
+            lastWatered: raw.lastWatered ?? '',
+            nextWatering: raw.nextWatering ?? '',
+            metrics: raw.metrics ?? [],
+            wateringLogs: raw.wateringLogs ?? [],
             createdAt: raw.createdAt,
             updatedAt: raw.updatedAt
-        } as Plant;
+        };
     }
 
 
@@ -47,9 +48,12 @@ export class PlantsService {
         if (!userId || userId === 'undefined' || userId === 'null') {
             throw new Error('Invalid userId provided to getPlantsByUser');
         }
-        // GET https://fakeapiplant.vercel.app/plants?userId={userId}
-        const res = await this.baseApi.http.get<any[]>(`${this.resourceEndpoint}?userId=${encodeURIComponent(userId)}`);
-        const mapped = (res.data || []).map(r => this.mapBackendToPlant(r));
+        // GET /api/v1/plants/users/{userId}/plants
+        const res = await this.baseApi.http.get<any>(`/plants/users/${encodeURIComponent(userId)}/plants`);
+        
+        const data = Array.isArray(res.data) ? res.data : [];
+        const mapped = data.map(r => this.mapBackendToPlant(r));
+
         return { ...res, data: mapped };
     }
 
@@ -66,7 +70,6 @@ export class PlantsService {
         const body = {
             ...plantResource,
             status: (plantResource.status || 'healthy').toUpperCase(),
-            humidity: Number(plantResource.humidity || 0)
         };
         const res = await this.baseApi.http.post<any>(`${this.resourceEndpoint}`, body);
         return { ...res, data: this.mapBackendToPlant(res.data) };

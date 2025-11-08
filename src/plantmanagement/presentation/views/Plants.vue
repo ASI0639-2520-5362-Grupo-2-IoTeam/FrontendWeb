@@ -7,8 +7,6 @@ import { PlantsService } from '../../infrastructure/plats.services.ts';
 import type { Plant } from '../../domain/model/plants.entity.ts';
 import { useAuthenticationStore } from '../../../iam/services/Authentication.Store.ts';
 
-
-
 interface Filter {
   id: string;
   label: string;
@@ -44,6 +42,7 @@ onMounted(async () => {
   console.debug('[plantmanagement] onMounted start, authStore.uuid=', authStore.uuid, 'isSignedIn=', authStore.isSignedIn);
   try {
     const uid = userUuid.value;
+    console.log('Fetching plants for user ID:', uid); // Log for debugging
     if (uid == null) {
       plants.value = [];
       console.debug('[plantmanagement] no userUuid, showing empty state');
@@ -51,6 +50,7 @@ onMounted(async () => {
     }
     // Obtener plantas del usuario autenticado
     const res = await plantsService.getPlantsByUser(uid);
+    console.log('API response:', res); // Log for debugging
     plants.value = res.data;
     console.debug('[plantmanagement] plantas cargadas:', plants.value);
   } catch (e) {
@@ -118,6 +118,15 @@ function formatDate(dateStr: string): string {
     hour: '2-digit', minute: '2-digit', hour12: false
   });
 }
+
+const getLatestHumidity = (plant: Plant): number | string => {
+  if (plant.metrics && plant.metrics.length > 0) {
+    // Sort metrics by date and get the latest one
+    const latestMetric = [...plant.metrics].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+    return latestMetric.humidity;
+  }
+  return 'N/A';
+}
 </script>
 
 <template>
@@ -174,7 +183,7 @@ function formatDate(dateStr: string): string {
           <div class="plant-stats">
             <div class="stat-item">
               <span class="stat-label">Humidity</span>
-              <span class="stat-value">{{ plant.humidity }}%</span>
+              <span class="stat-value">{{ getLatestHumidity(plant) }}%</span>
             </div>
             <div class="stat-item">
               <span class="stat-label">Last Watered</span>
