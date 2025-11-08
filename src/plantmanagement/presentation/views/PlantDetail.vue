@@ -1,611 +1,462 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import Button from 'primevue/button';
+import Card from 'primevue/card';
+import Avatar from 'primevue/avatar';
+import ConfirmDialog from 'primevue/confirmdialog';
+import Toast from 'primevue/toast';
+import ProgressSpinner from 'primevue/progressspinner';
+import { useConfirm } from "primevue/useconfirm";
+import { useToast } from "primevue/usetoast";
 import { PlantsService } from '../../infrastructure/plats.services.ts';
-import type { Plant as PlantEntity } from '../../domain/model/plants.entity.ts';
-
-interface HumidityData {
-  day: string;
-  value: number;
-}
-
-// Interfaz que usa el template (mantenerla para no tocar el template ni estilos)
-interface PlantView {
-  id: number;
-  name: string;
-  type: string;
-  icon: string;
-  humidity: number;
-  lastWatered: string;
-  status: 'healthy' | 'warning' | 'critical';
-  location: string;
-  nextWatering: string;
-  bio?: string; // Nueva propiedad bio
-  imageUrl?: string; // Nueva propiedad para imagen
-}
+import type { Plant as PlantEntity, Metric } from '../../domain/model/plants.entity.ts';
 
 const router = useRouter();
 const route = useRoute();
 const plantsService = new PlantsService();
+const confirm = useConfirm();
+const toast = useToast();
 
-const plant = ref<PlantView | null>(null);
-
+const plant = ref<PlantEntity | null>(null);
+const isLoading = ref(true);
 const plantId = Number(route.params.id);
-
-function mapEntityToView(e: PlantEntity): PlantView {
-  return {
-    id: e.id,
-    name: e.name,
-    type: e.type,
-    icon: '', // Se agrega para cumplir con la interfaz, pero no se usa
-    humidity: e.humidity ?? 0,
-    lastWatered: e.lastWatered ?? '',
-    status: e.status ?? 'healthy',
-    location: e.location ?? '',
-    nextWatering: e.nextWatering ?? '',
-    bio: e.bio ?? 'Esta planta es especial por su resistencia y belleza. Ideal para interiores y fácil de cuidar.',
-    imageUrl: e.imgUrl ?? '/src/assets/vue.svg', // Usar imgUrl real
-  };
-}
 
 onMounted(async () => {
   try {
     const response = await plantsService.getPlantById(plantId);
-    // response.data es la entidad completa; la mapeamos a lo que espera el template
-    plant.value = mapEntityToView(response.data as PlantEntity);
+    plant.value = response.data;
   } catch (err) {
-    console.error('Error cargando planta:', err);
+    console.error('Error loading plant:', err);
     plant.value = null;
+  } finally {
+    isLoading.value = false;
   }
 });
 
-const humidityData = ref<HumidityData[]>([
-  { day: 'Mon', value: 65 },
-  { day: 'Tue', value: 70 },
-  { day: 'Wed', value: 68 },
-  { day: 'Thu', value: 72 },
-  { day: 'Fri', value: 75 },
-  { day: 'Sat', value: 71 },
-  { day: 'Sun', value: 72 },
-]);
+const latestMetric = computed((): Metric | null => {
+  const metrics = plant.value?.metrics ?? [];
+  if (metrics.length === 0) return null;
+  const sorted = [...metrics].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  return sorted[0] ?? null;
+});
 
 const goBack = () => {
   router.push('/plants');
 };
 
-const handleChangePhoto = () => {
-  console.log('Change photo');
+const handleDelete = () => {
+  if (!plant.value) return;
+
+  confirm.require({
+    message: 'Are you sure you want to delete this plant? This action cannot be undone.',
+    header: 'Confirm Deletion',
+    icon: 'pi pi-exclamation-triangle',
+    accept: async () => {
+      try {
+        await plantsService.deletePlant(plant.value!.id);
+        toast.add({ severity: 'success', summary: 'Success', detail: 'Plant deleted successfully', life: 3000 });
+        setTimeout(() => router.push('/plants'), 1500);
+      } catch (err) {
+        toast.add({ severity: 'error', summary: 'Error', detail: 'There was an error deleting the plant', life: 3000 });
+      }
+    },
+    reject: () => {
+      toast.add({ severity: 'info', summary: 'Cancelled', detail: 'Deletion cancelled', life: 3000 });
+    }
+  });
 };
 
-const handleEditInfo = () => {
-  console.log('Edit info');
-};
-
-const handleEdit = () => {
-  console.log('Edit plant');
-};
-
-const handleDelete = async () => {
-  const confirmed = window.confirm('¿Estás seguro de que deseas borrar esta planta? Esta acción no se puede deshacer.');
-  if (!confirmed) return;
-  try {
-    await plantsService.deletePlant(plantId);
-    window.alert('Planta eliminada correctamente.');
-    router.push('/plants'); // Redirige a la lista de plantas
-  } catch (err) {
-    console.error('Error al borrar la planta:', err);
-    window.alert('Hubo un error al borrar la planta.');
-  }
-};
-
-const handleWaterNow = () => {
-  console.log('Water now');
-};
-
-function formatDate(dateStr: string): string {
-  if (!dateStr) return '';
+function formatDate(dateStr: string | null): string {
+  if (!dateStr) return 'N/A';
   const d = new Date(dateStr);
   if (isNaN(d.getTime())) return dateStr;
-  // Ejemplo: 7 oct 2025, 10:00
-  return d.toLocaleString('es-PE', {
+  return d.toLocaleString('en-US', {
     year: 'numeric', month: 'short', day: 'numeric',
-    hour: '2-digit', minute: '2-digit', hour12: false
+    hour: '2-digit', minute: '2-digit', hour12: true
   });
 }
 </script>
 
 <template>
-  <div class="plant-detail">
-    <button class="back-button" @click="goBack">
-      ← Back to Plants
-    </button>
-    <div v-if="plant" class="content">
-      <div class="image-section">
-        <div class="plant-img-bg">
-          <img :src="plant.imageUrl" alt="Plant" class="plant-img" />
-        </div>
-        <div class="image-actions">
-          <Button
-              label="📷 Change Photo"
-              outlined
-              @click="handleChangePhoto"
-          />
-          <Button
-              label="📝 Edit Info"
-              class="btn-secondary"
-              @click="handleEditInfo"
-          />
-        </div>
-        <div class="plant-bio-card">
-          <span class="bio-icon">🌱</span>
-          <p class="plant-bio-text">
-            {{ plant.bio }}
-          </p>
-        </div>
+  <div class="plant-detail-view">
+    <Toast />
+    <ConfirmDialog />
+    <Button
+        icon="pi pi-arrow-left"
+        label="Back to Plants"
+        text
+        @click="goBack"
+        class="back-button"
+    />
+
+    <div v-if="isLoading" class="loading-state">
+      <ProgressSpinner />
+      <h2>Loading sensor data...</h2>
+    </div>
+
+    <div v-else-if="plant" class="content-grid">
+      <!-- Left Column: Image and Bio -->
+      <div class="left-column">
+        <Card class="plant-card">
+          <template #header>
+            <div class="plant-image-container">
+              <img :src="plant.imgUrl" :alt="plant.name" class="plant-image" />
+            </div>
+          </template>
+          <template #title>
+            <div class="plant-title-section">
+              <h1 class="plant-name">{{ plant.name }}</h1>
+              <p class="plant-type">{{ plant.type }}</p>
+            </div>
+          </template>
+          <template #subtitle>
+            <div class="plant-location">
+              <i class="pi pi-map-marker"></i>
+              <span>{{ plant.location }}</span>
+            </div>
+          </template>
+          <template #content>
+            <p class="plant-bio">{{ plant.bio }}</p>
+          </template>
+        </Card>
       </div>
 
-      <!-- Detail Section -->
-      <div class="detail-section">
-        <!-- Header -->
-        <div class="header">
-          <div class="title-row">
-            <div>
-              <h1 class="plant-name">{{ plant.name }}</h1>
-              <p class="plant-type">{{ plant.type }} • {{ plant.location }}</p>
-            </div>
-            <div class="actions">
-              <button
-                  class="icon-button"
-                  @click="handleEdit"
-              >
-                ✏️
-              </button>
-              <button
-                  class="icon-button danger"
-                  @click="handleDelete"
-              >
-                🗑️
-              </button>
-            </div>
-          </div>
-
-          <div class="status-badge healthy">
-            <span class="status-dot"></span>
-            Healthy
-          </div>
-
-          <div class="stats-row">
-            <div class="stat-box">
-              <div class="stat-value">{{ plant.humidity }}%</div>
-              <div class="stat-label">Current Humidity</div>
-            </div>
-            <div class="stat-box">
-              <div class="stat-value">{{ formatDate(plant.lastWatered) }}</div>
-              <div class="stat-label">Last Watered</div>
-            </div>
-            <div class="stat-box">
-              <div class="stat-value">{{ formatDate(plant.nextWatering) }}</div>
-              <div class="stat-label">Next Watering</div>
-            </div>
-          </div>
+      <!-- Right Column: Metrics and Details -->
+      <div class="right-column">
+        <div class="metrics-grid">
+          <Card class="metric-card">
+            <template #content>
+              <div class="metric-content">
+                <Avatar icon="pi pi-sun" size="large" shape="circle" class="metric-icon temp" />
+                <div class="metric-info">
+                  <span class="metric-label">Temperature</span>
+                  <span class="metric-value">{{ latestMetric?.temperature ?? 'N/A' }}°C</span>
+                </div>
+              </div>
+            </template>
+          </Card>
+          <Card class="metric-card">
+            <template #content>
+              <div class="metric-content">
+                <Avatar icon="pi pi-cloud" size="large" shape="circle" class="metric-icon humidity" />
+                <div class="metric-info">
+                  <span class="metric-label">Air Humidity</span>
+                  <span class="metric-value">{{ latestMetric?.humidity ?? 'N/A' }}%</span>
+                </div>
+              </div>
+            </template>
+          </Card>
+          <Card class="metric-card">
+            <template #content>
+              <div class="metric-content">
+                <Avatar icon="pi pi-lightbulb" size="large" shape="circle" class="metric-icon light" />
+                <div class="metric-info">
+                  <span class="metric-label">Light</span>
+                  <span class="metric-value">{{ latestMetric?.light ?? 'N/A' }} lm</span>
+                </div>
+              </div>
+            </template>
+          </Card>
+          <Card class="metric-card">
+            <template #content>
+              <div class="metric-content">
+                <!-- SVG simple de gota para Soil Humidity (asegura render incluso si primeicons no contiene el icono) -->
+                <div class="metric-icon soil" role="img" aria-label="Soil humidity">
+                  <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+                    <path fill="currentColor" d="M12 2s-7 7-7 12a7 7 0 0014 0c0-5-7-12-7-12z" />
+                  </svg>
+                </div>
+                <div class="metric-info">
+                  <span class="metric-label">Soil Humidity</span>
+                  <span class="metric-value">{{ latestMetric?.soilHumidity ?? 'N/A' }}%</span>
+                </div>
+              </div>
+            </template>
+          </Card>
         </div>
 
-        <!-- Humidity Chart -->
-        <div class="chart-card">
-          <h3 class="card-title">Humidity Levels (Last 7 Days)</h3>
-          <div class="chart">
-            <div
-                v-for="(data, index) in humidityData"
-                :key="index"
-                class="chart-bar"
-                :style="{ height: `${data.value}%` }"
-            >
-              <span class="chart-label">{{ data.day }}</span>
+        <Card class="watering-card">
+          <template #title>Watering Schedule</template>
+          <template #content>
+            <div class="watering-details">
+              <div class="watering-item">
+                <i class="pi pi-calendar-times"></i>
+                <div>
+                  <span class="watering-label">Last Watered</span>
+                  <p>{{ formatDate(plant.lastWatered) }}</p>
+                </div>
+              </div>
+              <div class="watering-item">
+                <i class="pi pi-calendar-plus"></i>
+                <div>
+                  <span class="watering-label">Next Watering</span>
+                  <p>{{ formatDate(plant.nextWatering) }}</p>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
+          </template>
+        </Card>
 
-        <!-- Watering Recommendation -->
-        <div class="recommendation-card">
-          <div class="recommendation-content">
-            <div class="recommendation-info">
-              <h3>💧 Watering Recommendation</h3>
-              <p>Your {{ plant.name }} is doing well! Next watering recommended in 5 days.</p>
-            </div>
-            <button
-                class="water-button"
-                @click="handleWaterNow"
-            >
-              Water Now
-            </button>
-          </div>
+        <div class="actions-footer">
+            <Button
+                label="Delete Plant"
+                icon="pi pi-trash"
+                severity="danger"
+                outlined
+                @click="handleDelete"
+            />
         </div>
       </div>
     </div>
+
     <div v-else class="not-found">
-      <h2>Planta no encontrada</h2>
-      <p>El ID especificado no corresponde a ninguna planta registrada.</p>
-      <button class="back-button" @click="goBack">
-        ← Volver al listado
-      </button>
+      <h2>Plant Not Found</h2>
+      <p>The specified ID does not correspond to any registered plant.</p>
     </div>
   </div>
 </template>
 
 <style scoped>
-.plant-detail {
-  max-width: 1200px;
-  margin: 0 auto;
+/* Reemplazos directos de variables por colores fijos para evitar errores de analizador */
+.plant-detail-view {
+  max-width: 1400px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem;
+  gap: 1rem;
 }
 
 .back-button {
-  background: none;
-  border: none;
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
+  margin-bottom: 2rem;
   color: var(--text-secondary);
-  font-size: var(--font-size-base);
-  cursor: pointer;
-  margin-bottom: var(--spacing-xl);
-  padding: var(--spacing-sm);
-  border-radius: var(--radius-sm);
-  transition: all 0.2s ease;
 }
 
-.back-button:hover {
-  color: var(--primary-green);
-  background: rgba(138, 199, 61, 0.08);
-}
-
-.content {
+.content-grid {
   display: grid;
-  grid-template-columns: 400px 1fr;
-  gap: var(--spacing-xl);
+  grid-template-columns: 1fr 2fr;
+  gap: 2rem;
 }
 
-.image-section {
-  background: var(--bg-card);
-  border-radius: var(--radius-lg);
-  padding: var(--spacing-xl);
-  box-shadow: var(--shadow-md);
+.left-column, .right-column {
   display: flex;
   flex-direction: column;
+  gap: 2rem;
+}
+
+.plant-card, .metric-card, .watering-card {
+  background-color: var(--bg-card);
+  border-radius: 1rem;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+
+.plant-image-container {
+  width: 100%;
+  height: 300px;
+  overflow: hidden;
+  border-radius: 1rem 1rem 0 0;
+}
+
+.plant-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.plant-title-section {
+  text-align: center;
+  margin-top: 1rem;
+}
+
+.plant-name {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.plant-type {
+  font-size: 1.1rem;
+  color: var(--text-secondary);
+  margin-top: 0.25rem;
+}
+
+.plant-location {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text-secondary);
+  margin-top: 0.5rem;
+}
+
+.plant-bio {
+  font-size: 1rem;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  text-align: center;
+  padding: 0 1rem;
+}
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+}
+
+.metric-content {
+  display: flex;
   align-items: center;
   gap: 1.5rem;
 }
 
-.plant-img-bg {
-  background: linear-gradient(135deg, #43ea7c 0%, #2dbd6e 100%);
-  border-radius: 1.5rem;
-  padding: 2rem 1rem;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
-
-.plant-img {
-  width: 120px;
-  height: 120px;
-  object-fit: cover;
+/* Add sizing/centering for metric icons (ensures SVG fits) */
+.metric-icon {
+  color: #fff; /* Keep icon color white for contrast with custom backgrounds */
+  width: 56px;
+  height: 56px;
   border-radius: 50%;
-  border: 4px solid #fff;
-  box-shadow: 0 4px 16px rgba(67,234,124,0.15);
-  background: #fff;
-}
-
-.image-actions {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--spacing-md);
-  width: 100%;
-  margin-top: 1rem;
-}
-
-.btn-secondary {
-  background: var(--bg-secondary) !important;
-  border: 1px solid var(--border-color) !important;
-  color: var(--text-primary) !important;
-}
-
-.btn-secondary:hover {
-  border-color: var(--primary-green) !important;
-}
-
-.plant-bio-card {
-  background: #fff;
-  border-radius: 1rem;
-  box-shadow: 0 2px 12px rgba(67,234,124,0.12);
-  border: 1.5px solid #43ea7c;
-  padding: 1.2rem 1.5rem;
-  max-width: 370px;
-  text-align: center;
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin-top: 1rem;
-}
-
-.bio-icon {
-  font-size: 2rem;
-  color: #43ea7c;
-  margin-bottom: 0.5rem;
-}
-
-.plant-bio-text {
-  color: #222;
-  font-size: 1.15rem;
-  font-weight: 500;
-  line-height: 1.6;
-  letter-spacing: 0.01em;
-  margin: 0;
-  font-family: 'Segoe UI', 'Roboto', 'Arial', sans-serif;
-}
-
-.detail-section {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-lg);
-}
-
-.header {
-  background: var(--bg-card);
-  border-radius: var(--radius-lg);
-  padding: var(--spacing-xl);
-  box-shadow: var(--shadow-md);
-}
-
-.title-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: var(--spacing-md);
-}
-
-.plant-name {
-  font-size: var(--font-size-2xl);
-  font-weight: var(--font-weight-bold);
-  color: var(--text-primary);
-  margin: 0 0 var(--spacing-xs) 0;
-}
-
-.plant-type {
-  font-size: var(--font-size-base);
-  color: var(--text-secondary);
-  margin: 0;
-}
-
-.actions {
-  display: flex;
-  gap: var(--spacing-sm);
-}
-
-.icon-button {
-  width: 40px;
-  height: 40px;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border-color);
-  background: var(--bg-primary);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  font-size: 18px;
-  transition: all 0.2s ease;
-}
-
-.icon-button:hover {
-  border-color: var(--primary-green);
-  background: rgba(138, 199, 61, 0.08);
-}
-
-.icon-button.danger:hover {
-  border-color: var(--status-critical);
-  background: rgba(239, 68, 68, 0.08);
-  color: var(--status-critical);
-}
-
-.status-badge {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border-radius: 20px;
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-semibold);
-  background: rgba(138, 199, 61, 0.15);
-  margin-bottom: var(--spacing-lg);
+  justify-content: center;
+  font-size: 1.25rem;
+}
+.metric-icon svg {
+  width: 26px;
+  height: 26px;
+}
+.metric-icon.temp { background-color: #ff9800; }
+.metric-icon.humidity { background-color: #2196f3; }
+.metric-icon.light { background-color: #ffc107; }
+.metric-icon.soil { background-color: #8d6e63; }
+
+.metric-info {
+  display: flex;
+  flex-direction: column;
 }
 
-.status-badge.healthy {
-  color: var(--status-healthy);
-}
-
-.status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: currentColor;
-}
-
-.stats-row {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: var(--spacing-lg);
-  padding-top: var(--spacing-lg);
-  border-top: 1px solid var(--border-color);
-}
-
-.stat-box {
-  text-align: center;
-}
-
-.stat-value {
-  font-size: var(--font-size-2xl);
-  font-weight: var(--font-weight-bold);
-  color: var(--text-primary);
-  margin-bottom: var(--spacing-xs);
-}
-
-.stat-label {
-  font-size: var(--font-size-sm);
+.metric-label {
+  font-size: 0.9rem;
   color: var(--text-secondary);
 }
-
-.chart-card {
-  background: var(--bg-card);
-  border-radius: var(--radius-lg);
-  padding: var(--spacing-xl);
-  box-shadow: var(--shadow-md);
-}
-
-.card-title {
-  font-size: var(--font-size-lg);
-  font-weight: var(--font-weight-bold);
+.metric-value {
+  font-size: 1.5rem;
+  font-weight: 600;
   color: var(--text-primary);
-  margin: 0 0 var(--spacing-lg) 0;
 }
 
-.chart {
-  width: 100%;
-  height: 300px;
-  background: var(--bg-primary);
-  border-radius: var(--radius-md);
+.watering-details {
   display: flex;
-  align-items: flex-end;
   justify-content: space-around;
-  padding: var(--spacing-lg);
-  gap: var(--spacing-sm);
+  gap: 2rem;
 }
 
-.chart-bar {
-  flex: 1;
-  background: var(--primary-green);
-  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
-  position: relative;
-  transition: all 0.3s ease;
-  min-height: 20px;
-}
-
-.chart-bar:hover {
-  background: var(--secondary-green);
-  transform: translateY(-4px);
-}
-
-.chart-label {
-  position: absolute;
-  bottom: -24px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: var(--font-size-xs);
-  color: var(--text-light);
-  white-space: nowrap;
-}
-
-.recommendation-card {
-  background: linear-gradient(135deg, var(--primary-green) 0%, var(--secondary-green) 100%);
-  border-radius: var(--radius-lg);
-  padding: var(--spacing-xl);
-  color: #ffffff;
-  box-shadow: var(--shadow-md);
-}
-
-.recommendation-content {
+.watering-item {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  gap: 1rem;
+  font-size: 1.1rem;
 }
 
-.recommendation-info h3 {
-  font-size: var(--font-size-xl);
-  font-weight: var(--font-weight-bold);
-  margin: 0 0 var(--spacing-sm) 0;
+.watering-item i {
+  font-size: 2rem;
+  color: var(--status-success);
 }
 
-.recommendation-info p {
-  opacity: 0.95;
-  margin: 0;
+.watering-label {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+.watering-item p {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0.25rem 0 0 0;
+  color: var(--text-primary);
 }
 
-.water-button {
-  background: #ffffff;
-  color: var(--primary-green);
-  padding: 12px 32px;
-  border-radius: var(--radius-md);
-  border: none;
-  font-weight: var(--font-weight-semibold);
-  font-size: var(--font-size-base);
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.water-button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+.actions-footer {
+  margin-top: auto;
+  padding-top: 2rem;
+  display: flex;
+  justify-content: flex-end;
 }
 
 .not-found {
   text-align: center;
-  padding: var(--spacing-xl);
-  background: var(--bg-card);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-md);
-}
-
-.not-found h2 {
-  font-size: var(--font-size-xl);
-  font-weight: var(--font-weight-bold);
+  padding: 4rem;
+  background-color: var(--bg-card);
   color: var(--text-primary);
-  margin-bottom: var(--spacing-md);
-}
-
-.not-found p {
-  color: var(--text-secondary);
-  margin-bottom: var(--spacing-lg);
 }
 
 @media (max-width: 992px) {
-  .content {
+  .content-grid {
     grid-template-columns: 1fr;
-  }
-
-  .stats-row {
-    grid-template-columns: repeat(3, 1fr);
   }
 }
 
-@media (max-width: 768px) {
-  .image-section {
-    padding: var(--spacing-lg);
+/* Dark mode overrides: cambia fondos y colores cuando el sistema está en modo oscuro */
+@media (prefers-color-scheme: dark) {
+  .plant-detail-view {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
   }
 
-
-  .stats-row {
-    grid-template-columns: 1fr;
+  .plant-card, .metric-card, .watering-card {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    box-shadow: var(--shadow-md);
   }
 
-  .recommendation-content {
-    flex-direction: column;
-    text-align: center;
-    gap: var(--spacing-lg);
+  /* Forzar sobre los elementos internos de PrimeVue (p-card) en caso de que el tema los pinte en claro */
+  :deep(.p-card) {
+    background-color: var(--bg-card) !important;
+    border-color: var(--border-color) !important;
+    color: var(--text-primary) !important;
+    box-shadow: var(--shadow-md) !important;
   }
 
-  .water-button {
-    width: 100%;
+  /* Contenido y títulos internos de la card */
+  :deep(.p-card .p-card-title), :deep(.p-card .p-card-content) {
+    color: inherit !important;
   }
-}
 
-@media (max-width: 600px) {
-  .plant-img-bg {
-    padding: 1rem 0.5rem;
-  }
-  .plant-bio-card {
-    font-size: 1rem;
-    max-width: 95vw;
-    padding: 1rem 0.5rem;
-  }
+   .plant-image-container {
+     /* opcional: añadir un fondo oscuro por si la imagen no carga */
+     background-color: var(--bg-primary);
+   }
+
+   .plant-name, .metric-value {
+     color: var(--text-primary);
+   }
+
+   .plant-type, .plant-location, .plant-bio, .metric-label, .watering-label {
+     color: var(--text-secondary);
+   }
+
+   .watering-item i {
+     color: var(--status-info); /* color primario claro para íconos */
+   }
+
+   .not-found {
+     background-color: var(--bg-card);
+     color: var(--text-primary);
+   }
+
+   /* Ajustes menores para los iconos circulares para mejor contraste en oscuro */
+   .metric-icon.temp { background-color: #b25b00; }
+   .metric-icon.humidity { background-color: #1e6fb8; }
+   .metric-icon.light { background-color: #b38600; }
+   .metric-icon.soil { background-color: #6b4f44; }
 }
 </style>

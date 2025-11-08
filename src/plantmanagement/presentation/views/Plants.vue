@@ -1,13 +1,11 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
 import { PlantsService } from '../../infrastructure/plats.services.ts';
 import type { Plant } from '../../domain/model/plants.entity.ts';
 import { useAuthenticationStore } from '../../../iam/services/Authentication.Store.ts';
-
-
 
 interface Filter {
   id: string;
@@ -20,6 +18,7 @@ const activeFilter = ref('all');
 const searchQuery = ref('');
 const plants = ref<Plant[]>([]);
 const plantsService = new PlantsService();
+const isLoading = ref(true);
 
 const authStore = useAuthenticationStore();
 // Ensure the authStore is initialized from localStorage if needed
@@ -27,42 +26,46 @@ if (!authStore.isSignedIn) {
   try { authStore.initialize(); } catch (e) { /* ignore */ }
 }
 
-// Usar el UUID del usuario autenticado
-const userUuid = computed(() => {
-  // prefer store value
-  const uuid = authStore.uuid;
-  if (uuid && uuid !== 'undefined') return uuid;
-  // fallback a localStorage
-  const ls = localStorage.getItem('userUuid');
-  if (ls && ls !== 'undefined') return ls;
-  return null;
-});
+const userUuid = computed(() => authStore.uuid);
 
-console.debug('[plantmanagement] setup start');
+const fetchPlants = async () => {
+  const uid = userUuid.value;
+  if (!uid) {
+    plants.value = [];
+    isLoading.value = false;
+    console.debug('[plantmanagement] No userUuid, showing empty state');
+    return;
+  }
 
-onMounted(async () => {
-  console.debug('[plantmanagement] onMounted start, authStore.uuid=', authStore.uuid, 'isSignedIn=', authStore.isSignedIn);
+  isLoading.value = true;
   try {
-    const uid = userUuid.value;
-    if (uid == null) {
-      plants.value = [];
-      console.debug('[plantmanagement] no userUuid, showing empty state');
-      return;
-    }
-    // Obtener plantas del usuario autenticado
     const res = await plantsService.getPlantsByUser(uid);
     plants.value = res.data;
-    console.debug('[plantmanagement] plantas cargadas:', plants.value);
+    console.debug('[plantmanagement] Plants loaded:', plants.value);
   } catch (e) {
     plants.value = [];
-    console.error('[plantmanagement] error al cargar plantas:', e);
+    console.error('[plantmanagement] Error loading plants:', e);
+  } finally {
+    isLoading.value = false;
   }
-});
+};
 
-console.debug('[plantmanagement] setup end');
+// Watch for changes in the authentication state
+watch(
+  () => authStore.isSignedIn,
+  (isReady) => {
+    if (isReady) {
+      fetchPlants();
+    } else {
+      plants.value = [];
+      isLoading.value = true;
+    }
+  },
+  { immediate: true } // Run the watcher immediately on component mount
+);
 
 const filters = computed<Filter[]>(() => [
-  { id: 'all', label: 'All plantmanagement', count: plants.value.length },
+  { id: 'all', label: 'All Plants', count: plants.value.length },
   { id: 'healthy', label: 'Healthy', count: plants.value.filter(p => p.status === 'healthy').length },
   { id: 'warning', label: 'Warning', count: plants.value.filter(p => p.status === 'warning').length },
   { id: 'critical', label: 'Critical', count: plants.value.filter(p => p.status === 'critical').length },
@@ -112,11 +115,18 @@ function formatDate(dateStr: string): string {
   if (!dateStr) return '';
   const d = new Date(dateStr);
   if (isNaN(d.getTime())) return dateStr;
-  // Ejemplo: 7 oct 2025, 10:00
   return d.toLocaleString('es-PE', {
     year: 'numeric', month: 'short', day: 'numeric',
     hour: '2-digit', minute: '2-digit', hour12: false
   });
+}
+
+const getLatestHumidity = (plant: Plant): number | string => {
+  if (plant.metrics && plant.metrics.length > 0) {
+    const latestMetric = [...plant.metrics].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+    return latestMetric.humidity;
+  }
+  return 'N/A';
 }
 </script>
 
@@ -154,7 +164,11 @@ function formatDate(dateStr: string): string {
       </button>
     </div>
 
-    <div v-if="filteredPlants.length > 0" class="plants-grid">
+    <div v-if="isLoading" class="loading-state">
+      <div class="loading-icon">🌱</div>
+      <p>Loading your plants...</p>
+    </div>
+    <div v-else-if="filteredPlants.length > 0" class="plants-grid">
       <div
           v-for="plant in filteredPlants"
           :key="plant.id"
@@ -174,7 +188,7 @@ function formatDate(dateStr: string): string {
           <div class="plant-stats">
             <div class="stat-item">
               <span class="stat-label">Humidity</span>
-              <span class="stat-value">{{ plant.humidity }}%</span>
+              <span class="stat-value">{{ getLatestHumidity(plant) }}%</span>
             </div>
             <div class="stat-item">
               <span class="stat-label">Last Watered</span>
@@ -435,7 +449,7 @@ function formatDate(dateStr: string): string {
   color: var(--text-primary);
 }
 
-.empty-state {
+.empty-state, .loading-state {
   text-align: center;
   padding: var(--spacing-2xl);
 }
@@ -443,6 +457,12 @@ function formatDate(dateStr: string): string {
 .empty-icon {
   font-size: 64px;
   margin-bottom: var(--spacing-lg);
+}
+
+.loading-icon {
+  font-size: 64px;
+  margin-bottom: var(--spacing-lg);
+  animation: bounce 2s infinite;
 }
 
 .empty-title {
@@ -470,6 +490,18 @@ function formatDate(dateStr: string): string {
   background: #7ab531 !important;
 }
 
+
+@keyframes bounce {
+  0%, 20%, 50%, 80%, 100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-10px);
+  }
+  60% {
+    transform: translateY(-5px);
+  }
+}
 
 @media (max-width: 768px) {
   .header {

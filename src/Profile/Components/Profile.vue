@@ -63,16 +63,16 @@ const handleChangeAvatar = () => {
 const loadUserProfile = async () => {
   // Obtener el ID del usuario logueado desde el store
   const loggedUserId = authStore.uuid;
-  
+
   if (!loggedUserId) {
     // Intentar obtener datos de localStorage directamente como fallback
     const userUuid = localStorage.getItem('userUuid');
-    
+
     if (userUuid) {
       await loadProfileFromAPI(userUuid);
       return;
     }
-    
+
     return;
   }
 
@@ -85,13 +85,13 @@ const loadProfileFromAPI = async (userId: string) => {
 
   try {
     const response = await fetch(`https://fakeapiplant.vercel.app/profiles?userId=${userId}`);
-    
+
     if (!response.ok) {
       return;
     }
 
     const profiles = await response.json();
-    
+
     if (!Array.isArray(profiles) || profiles.length === 0) {
       return;
     }
@@ -106,7 +106,7 @@ const loadProfileFromAPI = async (userId: string) => {
     bio.value = userProfile.bio || '';
     location.value = userProfile.location || '';
     joinDate.value = userProfile.joinDate || 'Reciente';
-    
+
     if (userProfile.avatarUrl) {
       avatarPreview.value = userProfile.avatarUrl;
     }
@@ -124,10 +124,10 @@ onMounted(async () => {
   if (!authStore.isInitialized) {
     authStore.initialize();
   }
-  
+
   // Esperar un poco para que se complete la inicialización
   await new Promise(resolve => setTimeout(resolve, 100));
-  
+
   // Cargar el perfil del usuario
   await loadUserProfile();
 });
