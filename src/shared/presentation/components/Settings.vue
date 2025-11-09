@@ -3,13 +3,13 @@ import {computed, onMounted, ref} from 'vue';
 import Button from 'primevue/button';
 import InputSwitch from 'primevue/inputswitch';
 import { SubscriptionService } from '../../../subscription/infrastructure/Subscription.Service.ts';
-import type { Subscription } from '../../../subscription/domain/model/Subscription.model.ts';
-import { useRouter } from 'vue-router'; //
+import type {Subscription, SubscriptionResponse} from '../../../subscription/domain/model/Subscription.model.ts';
+import { useRouter } from 'vue-router';
 import {planTemplates, type PlanType} from '../../../subscription/domain/model/planTemplates.ts';
 
 const subscriptionService = new SubscriptionService();
 const userId = localStorage.getItem('userUuid') || 'NO-UUID';
-const router = useRouter();
+const $router = useRouter();
 //DEVELOP ONLY
 console.log("UUID del usuario autenticado:", userId);
 interface Device {
@@ -29,11 +29,6 @@ const devices = ref<Device[]>([
   { id: 2, name: 'Humidity Sensor #2', location: 'Bedroom', status: 'active' },
 ]);
 
-
-const handleManageSubscription = () => {
-  console.log('Manage subscription');
-};
-
 const handleAddDevice = () => {
   console.log('Add new device');
 };
@@ -45,33 +40,39 @@ const errorSubscription = ref<string | null>(null);
 
 // --- Plan actual (tipado y seguro) ---
 const currentPlan = computed(() => {
-  if (!subscription.value || !subscription.value.plan) return null;
-  const type = subscription.value.plan.type as PlanType;
-  return planTemplates[type];
+  if (!subscription.value || !subscription.value.planName) return null;
+
+  // si tu backend devuelve planName como string, usa esto:
+  const type = subscription.value.planName.type as PlanType;
+  return planTemplates[type] ?? null;
 });
 // --- Función para obtener la suscripción del usuario ---
 const loadSubscription = async () => {
   try {
     loadingSubscription.value = true;
+
     const response = await subscriptionService.getByUserId(userId);
+    const data = response.data as unknown as SubscriptionResponse;
 
-    const data = response.data;
 
-    // Adaptar el formato del backend al modelo del frontend
+    // Convertir el string del backend al tipo y objeto esperado
+    const planType = (data.planName?.toUpperCase() ?? 'NONE') as PlanType;
+    const planTemplate = planTemplates[planType];
+
     subscription.value = {
       id: data.id,
       userId: data.userId,
-      plan: {
-        id: 'N/A',
-        type: data.planName as "NONE" | "BASIC" | "PREMIUM",
-        description: '',
-        price: 0,
+      planName: {
+        id: planType,
+        type: planType,
+        description: planTemplate.description,
+        price: planTemplate.price,
       },
       status: data.status,
       startDate: data.startDate,
       endDate: data.endDate,
       nextBillingDate: data.nextBillingDate,
-    };
+    } as Subscription;
   } catch (error: any) {
     errorSubscription.value = 'No se pudo cargar la suscripción.';
     console.error(error);
@@ -79,6 +80,7 @@ const loadSubscription = async () => {
     loadingSubscription.value = false;
   }
 };
+
 
 onMounted(() => {
   loadSubscription();
@@ -130,7 +132,7 @@ onMounted(() => {
           <div class="plan-info">
             <p v-if="subscription.status === 'ACTIVE'">
               Next billing date:
-              {{ new Date(subscription.nextBillingDate).toLocaleString('en-US', {
+              {{ new Date(subscription.nextBillingDate ?? '').toLocaleString('en-US', {
               day: '2-digit',
               month: 'long',
               year: 'numeric',
@@ -140,7 +142,7 @@ onMounted(() => {
             <!-- Mensaje adicional si está cancelada -->
             <p v-else-if="subscription.status === 'CANCELLED'" class="text-gray-500 italic">
               You will keep your benefits until {{
-                new Date(subscription.nextBillingDate).toLocaleString('en-US', {
+                new Date(subscription.nextBillingDate ?? '').toLocaleString('en-US', {
                   day: '2-digit',
                   month: 'long',
                   year: 'numeric',

@@ -124,7 +124,7 @@ function formatDate(dateStr: string): string {
 const getLatestHumidity = (plant: Plant): number | string => {
   if (plant.metrics && plant.metrics.length > 0) {
     const latestMetric = [...plant.metrics].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
-    return latestMetric.humidity;
+    return latestMetric?.humidity ?? 'N/A';
   }
   return 'N/A';
 }

@@ -60,7 +60,7 @@ export const useAuthenticationStore = defineStore("authentication", {
             if (token && userUuid) {
                 try {
                     const parts = token.split('.');
-                    const payload = JSON.parse(atob(parts[1]));
+                    const payload = JSON.parse(atob(parts[1]!));
                     this.token = token;
                     this.uuid = userUuid; // Usar el UUID guardado
                     this.email = payload.sub || null;

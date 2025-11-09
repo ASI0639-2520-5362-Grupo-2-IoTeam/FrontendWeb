@@ -2,7 +2,7 @@ import axios from 'axios';
 import type { AxiosInstance, InternalAxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
 
 
-import { authenticationInterceptor} from "../../IAM/services/Authentication.Interceptor.ts";
+import { authenticationInterceptor} from "../../iam/services/Authentication.Interceptor.ts";
 
 
 // Usar el proxy de Vite para evitar problemas CORS

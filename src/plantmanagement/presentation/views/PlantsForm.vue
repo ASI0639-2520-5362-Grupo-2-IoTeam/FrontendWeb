@@ -47,7 +47,6 @@ import { useRouter } from 'vue-router';
 import { useAuthenticationStore } from '../../../iam/services/Authentication.Store.ts';
 import InputText from 'primevue/inputtext';
 import Textarea from 'primevue/textarea';
-import Dropdown from 'primevue/dropdown';
 import Button from 'primevue/button';
 import { PlantsService} from "../../infrastructure/plats.services.ts";
 import type { Plant } from '../../domain/model/plants.entity.ts';

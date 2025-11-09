@@ -14,10 +14,15 @@ export function debugToken(): void {
   }
 
   try {
-    const parts = token.split('.');
-    const header = JSON.parse(atob(parts[0]));
-    const payload = JSON.parse(atob(parts[1]));
+      const parts = token.split('.');
 
+      if (parts.length !== 3 || !parts[0] || !parts[1]) {
+          console.error('❌ Token JWT malformado');
+          return;
+      }
+
+      const header = JSON.parse(atob(parts[0]));
+      const payload = JSON.parse(atob(parts[1]));
     console.group('🔍 Token JWT Debug');
     console.log('📋 Header:', header);
     console.log('📦 Payload:', payload);

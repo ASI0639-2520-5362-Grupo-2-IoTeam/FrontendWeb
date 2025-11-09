@@ -29,17 +29,22 @@ export interface LoginResponse {
 }
 
 // Helper para decodificar JWT y extraer payload
-function decodeJWT(token: string): { sub: string; role: string; iat: number; exp: number } | null {
+function decodeJWT(token?: string | null): { sub: string; role: string; iat: number; exp: number } | null {
     try {
+        if (!token) return null;
+
         const parts = token.split('.');
-        if (parts.length !== 3) return null;
-        const payload = JSON.parse(atob(parts[1]));
+        if (parts.length !== 3 || !parts[1]) return null;
+
+        const base64 = parts[1];
+        const payload = JSON.parse(atob(base64));
         return payload;
     } catch (e) {
         console.error('Error decoding JWT:', e);
         return null;
     }
 }
+
 
 
 export class AuthenticationService {
@@ -53,7 +58,7 @@ export class AuthenticationService {
         const response = await http.post<LoginResponse>(`/auth/login`, signInRequest);
 
         // Decodificar el JWT para extraer email y role
-        const token = response.data.token;
+        const token = response.data.token ?? null;
         const payload = decodeJWT(token);
 
         // Guardar el token en localStorage para el interceptor

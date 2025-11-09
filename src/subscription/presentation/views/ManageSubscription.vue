@@ -90,7 +90,7 @@ const openChangePlanDialog = () => {
 const confirmPlanChange = async () => {
   if (!selectedPlan.value) return;
   try {
-    const currentPlan = subscription.value?.planType || 'NONE';
+    const currentPlan = subscription.value?.planName || 'NONE';
     const currentStatus = subscription.value?.status || 'NONE';
     console.log('Plan actual:', currentPlan, '| Estado actual:', currentStatus);
 
@@ -146,8 +146,16 @@ onMounted(() => {
 
     <div v-else-if="subscription">
       <div class="card">
-        <h2>Current Plan: {{ subscription.planName === 'NONE' ? 'FreePlan' : subscription.planName }}</h2>
-        <p v-if="subscription?.planName !== 'NONE'">
+        <h2>
+          Current Plan:
+          {{
+            subscription.planName.type === 'NONE'
+                ? 'Free Plan'
+                : subscription.planName.type
+          }}
+        </h2>
+
+        <p v-if="subscription.planName.type !== 'NONE'">
           {{
             subscription.status === 'ACTIVE'
                 ? '🟢 Active'
@@ -157,9 +165,10 @@ onMounted(() => {
           }}
         </p>
 
-
         <p
-            v-if="subscription?.planType !== 'NONE' && subscription?.status === 'ACTIVE' && subscription?.nextBillingDate"
+            v-if="subscription.planName.type !== 'NONE' &&
+                 subscription.status === 'ACTIVE' &&
+                 subscription.nextBillingDate"
         >
           Next billing date:
           {{
@@ -170,7 +179,7 @@ onMounted(() => {
             })
           }}
         </p>
-        <p v-if="subscription?.planName === 'NONE'" class="text-gray-500 italic">
+        <p v-if="subscription.planName.type === 'NONE'" class="text-gray-500 italic">
           You are on FreePlan. Choose a paid plan to enable features.
         </p>
 
@@ -178,7 +187,7 @@ onMounted(() => {
         <div class="actions">
           <!-- Botón para cancelar -->
           <Button
-              v-if="subscription?.status === 'ACTIVE' && subscription?.planType !== 'NONE'"
+              v-if="subscription.status === 'ACTIVE' && subscription.planName.type !== 'NONE'"
               label="Cancelar suscripción"
               icon="pi pi-times"
               class="p-button-danger"
@@ -187,7 +196,7 @@ onMounted(() => {
 
           <!-- Botón para reactivar -->
           <Button
-              v-if="subscription?.status === 'CANCELLED' && subscription?.planName !== 'NONE' && subscription?.planType !== 'NONE'"
+              v-if="subscription.status === 'CANCELLED' && subscription.planName.type !== 'NONE'"
               label="Reactivar suscripción"
               icon="pi pi-refresh"
               class="p-button-success"
@@ -198,16 +207,15 @@ onMounted(() => {
 
           <!-- Botón para cambiar plan o suscribirse -->
           <Button
-              v-if="subscription?.planType === 'NONE'"
+              v-if="subscription.planName.type === 'NONE'"
               label="Elegir Plan"
               icon="pi pi-credit-card"
               class="p-button-success"
               @click="openChangePlanDialog"
           />
-
           <!-- Botón para cambiar plan -->
           <Button
-              v-if="subscription?.planType !== 'NONE'"
+              v-if="subscription.planName.type !== 'NONE'"
               label="Change Plan"
               outlined
               @click="openChangePlanDialog"

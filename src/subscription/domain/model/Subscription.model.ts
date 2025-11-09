@@ -12,3 +12,12 @@ export interface Subscription {
     endDate?: string;
     nextBillingDate?: string;
 }
+export interface SubscriptionResponse {
+    id: string;
+    userId: string;
+    planName: string;
+    status: 'PENDING' | 'ACTIVE' | 'CANCELLED';
+    startDate: string;
+    endDate?: string;
+    nextBillingDate?: string;
+}
