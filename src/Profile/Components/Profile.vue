@@ -12,24 +12,42 @@ interface Stats {
   icon: string;
 }
 
-const fullName = ref('John Doe');
-const email = ref('john@plantcare.com');
-const phone = ref('+1 (555) 123-4567');
-const bio = ref('Plant enthusiast and urban gardener. Love taking care of tropical plants and sharing tips with the community.');
-const location = ref('San Francisco, CA');
-const joinDate = ref('January 2024');
+// Obtener la fecha de unión desde el token
+const getJoinDate = (): string => {
+  const token = localStorage.getItem('token');
+  if (!token) return 'Fecha no disponible';
+  
+  try {
+    const [, base64Payload] = token.split('.');
+    if (!base64Payload) return 'Fecha no disponible';
+    
+    const payload = JSON.parse(atob(base64Payload));
+    if (payload.iat) {
+      return new Date(payload.iat * 1000).toLocaleDateString();
+    }
+  } catch (e) {
+    console.debug('Error parsing token date:', e);
+  }
+  return 'Fecha no disponible';
+};
+
+// Variables reactivas para el perfil
+const fullName = ref('Cargando...');
+const email = ref('Cargando...');
+const phone = ref('No disponible');
+const bio = ref('Usuario de PlantCare');
+const location = ref('No especificado');
+const joinDate = ref(getJoinDate());
 
 const stats = ref<Stats[]>([
-  { icon: '🌱', value: 24, label: 'Total plantmanagement' },
-  { icon: '💧', value: 156, label: 'Watering Sessions' },
-  { icon: '📅', value: '8 months', label: 'Member Since' },
-  { icon: '✅', value: '95%', label: 'Success Rate' },
+  { icon: '🌱', value: 0, label: 'Total plantas' },
+  { icon: '💧', value: 0, label: 'Riegos' },
+  { icon: '📅', value: joinDate.value, label: 'Miembro desde' },
+  { icon: '✅', value: '-', label: 'Tasa de éxito' }
 ]);
 
 const recentAchievements = ref([
-  { icon: '🏆', title: 'Plant Master', description: 'Reached 20+ plants', date: '2 weeks ago' },
-  { icon: '💧', title: 'Hydration Hero', description: '100 watering sessions', date: '1 month ago' },
-  { icon: '📊', title: 'Data Tracker', description: 'Logged 30 days consecutively', date: '2 months ago' },
+  { icon: '👋', title: 'Bienvenido', description: 'Te has unido a PlantCare', date: joinDate.value }
 ]);
 
 const isEditing = ref(false);
@@ -38,8 +56,7 @@ const loading = ref(false);
 // Obtener el store de autenticación
 const authStore = useAuthenticationStore();
 
-// Variables reactivas para los datos del perfil
-const profileId = ref<number | null>(null);
+// Variable reactiva para la foto de perfil
 const avatarPreview = ref<string | null>(null);
 
 const handleEdit = () => {
@@ -61,58 +78,27 @@ const handleChangeAvatar = () => {
 
 // Cargar perfil del usuario logueado
 const loadUserProfile = async () => {
-  // Obtener el ID del usuario logueado desde el store
-  const loggedUserId = authStore.uuid;
-
-  if (!loggedUserId) {
-    // Intentar obtener datos de localStorage directamente como fallback
-    const userUuid = localStorage.getItem('userUuid');
-
-    if (userUuid) {
-      await loadProfileFromAPI(userUuid);
-      return;
-    }
-
-    return;
-  }
-
-  await loadProfileFromAPI(loggedUserId);
-};
-
-// Función separada para cargar desde la API
-const loadProfileFromAPI = async (userId: string) => {
   loading.value = true;
-
+  
   try {
-    const response = await fetch(`https://fakeapiplant.vercel.app/profiles?userId=${userId}`);
-
-    if (!response.ok) {
-      return;
+    if (!authStore.isInitialized) {
+      authStore.initialize();
     }
 
-    const profiles = await response.json();
-
-    if (!Array.isArray(profiles) || profiles.length === 0) {
-      return;
-    }
-
-    const userProfile = profiles[0];
-
-    // Actualizar los datos del perfil
-    profileId.value = userProfile.id;
-    fullName.value = userProfile.displayName || 'Usuario';
-    email.value = userProfile.email || authStore.email || '';
-    phone.value = userProfile.phone || '';
-    bio.value = userProfile.bio || '';
-    location.value = userProfile.location || '';
-    joinDate.value = userProfile.joinDate || 'Reciente';
-
-    if (userProfile.avatarUrl) {
-      avatarPreview.value = userProfile.avatarUrl;
-    }
+    // Actualizar datos básicos desde el store
+    fullName.value = localStorage.getItem('username') || authStore.email?.split('@')[0] || 'Usuario';
+    email.value = authStore.email || 'No disponible';
+    
+    // Actualizar stats con la información actual
+    stats.value = [
+      { icon: '🌱', value: 0, label: 'Total plantas' },
+      { icon: '💧', value: 0, label: 'Riegos' },
+      { icon: '📅', value: joinDate.value, label: 'Miembro desde' },
+      { icon: '✅', value: '-', label: 'Tasa de éxito' }
+    ];
 
   } catch (error) {
-    // Error silencioso
+    console.error('Error loading profile:', error);
   } finally {
     loading.value = false;
   }
