@@ -9,11 +9,11 @@ export class SubscriptionService {
     }
 
     async cancel(userId: string): Promise<AxiosResponse<Subscription>> {
-        return http.post<Subscription>(`/subscriptions/${userId}/cancel`);
+        return http.post<Subscription>(`/subscriptions/${userId}/cancelled`);
     }
 
     async reactivate(userId: string): Promise<AxiosResponse<Subscription>> {
-        return http.post<Subscription>(`/subscriptions/${userId}/reactivate`);
+        return http.post<Subscription>(`/subscriptions/${userId}/active`);
     }
 
     async subscribeOrChangePlan(data: {
