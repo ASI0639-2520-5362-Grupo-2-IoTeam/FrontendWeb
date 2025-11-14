@@ -52,12 +52,12 @@ function decodeJWT(token?: string | null): any | null {
 export class AuthenticationService {
     async signUp(signUpRequest: SignUpRequest): Promise<AxiosResponse<RegisterResponse>> {
         // POST /api/auth/register (el baseURL ya incluye /api)
-        return http.post<RegisterResponse>(`/auth/register`, signUpRequest);
+        return http.post<RegisterResponse>(`/authentication/signup`, signUpRequest);
     }
 
     async signIn(signInRequest: SignInRequest): Promise<AxiosResponse<LoginResponse>> {
         // POST /api/auth/login
-        const response = await http.post<LoginResponse>(`/auth/login`, signInRequest);
+        const response = await http.post<LoginResponse>(`/authentication/signin`, signInRequest);
 
         const token = response.data.token;
         const uuid = response.data.uuid;
