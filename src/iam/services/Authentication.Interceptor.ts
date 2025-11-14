@@ -3,8 +3,12 @@ import type { InternalAxiosRequestConfig } from 'axios';
 export function authenticationInterceptor(config: InternalAxiosRequestConfig): InternalAxiosRequestConfig {
     const getToken = (): string | null => localStorage.getItem('token');
 
+    // Log para depurar la URL que recibe el interceptor
+    console.debug('[auth-interceptor] processing request for URL:', config.url);
+
     // Excluir rutas de autenticación (cambié '/authentication/' a '/auth/')
     if (config && config.url && config.url.includes('/auth/')) {
+        console.debug('[auth-interceptor] auth route detected, skipping token attachment for:', config.url);
         return config;
     }
 
