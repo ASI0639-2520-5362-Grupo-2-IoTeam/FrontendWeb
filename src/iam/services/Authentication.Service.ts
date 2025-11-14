@@ -23,9 +23,11 @@ export interface RegisterResponse {
     role: string;
 }
 
-// El backend solo devuelve { token }
+// El backend devuelve token, username y uuid
 export interface LoginResponse {
     token: string;
+    username: string;
+    uuid: string;
 }
 
 // Helper para decodificar JWT y extraer payload
