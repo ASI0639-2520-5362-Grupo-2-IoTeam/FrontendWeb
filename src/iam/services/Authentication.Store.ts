@@ -248,26 +248,26 @@ export const useAuthenticationStore = defineStore("authentication", {
                 }
 
                 if (!uuid) {
-                    // Fallback avanzado: si tenemos token pero no uuid, intentar obtener perfil del backend
-                    if (token) {
-                        try {
-                            const profileResp = await new AuthenticationService().getProfile();
-                            const profileData = profileResp?.data || profileResp;
-                            const profileUuid = extractUuid(profileData) || extractUuid(profileData?.user) || null;
-                            if (profileUuid) {
-                                uuid = profileUuid;
-                                // rellenar email/role si vienen en el perfil
-                                if (!email) {
-                                    try { this.email = profileData.email || profileData.user?.email || this.email; } catch(e){}
-                                }
-                                if (!role) {
-                                    try { this.roles = profileData.role ? [profileData.role] : this.roles; } catch(e){}
-                                }
-                                console.debug('[AuthStore] fallback profile obtuvo uuid:', uuid);
+                    // Fallback avanzado: intentar obtener perfil del backend incluso si no tenemos token en JS
+                    try {
+                        const profileResp = await new AuthenticationService().getProfile();
+                        const profileData = profileResp?.data || profileResp;
+                        const profileUuid = extractUuid(profileData) || extractUuid(profileData?.user) || null;
+                        if (profileUuid) {
+                            uuid = profileUuid;
+                            // rellenar email/role si vienen en el perfil
+                            if (!email) {
+                                try { this.email = profileData.email || profileData.user?.email || this.email; } catch(e){}
                             }
-                        } catch (e) {
-                            console.debug('[AuthStore] fallback getProfile falló:', e);
+                            if (!role) {
+                                try { this.roles = profileData.role ? [profileData.role] : this.roles; } catch(e){}
+                            }
+                            console.debug('[AuthStore] fallback profile obtuvo uuid:', uuid);
+                        } else {
+                            console.debug('[AuthStore] fallback profile no devolvió uuid, profileData keys:', Object.keys(profileData || {}));
                         }
+                    } catch (e) {
+                        console.debug('[AuthStore] fallback getProfile falló:', e);
                     }
                 }
 
