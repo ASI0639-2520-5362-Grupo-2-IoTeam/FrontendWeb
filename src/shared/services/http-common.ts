@@ -17,14 +17,13 @@ const http: AxiosInstance = axios.create({
         'Content-Type': 'application/json',
         'Accept': 'application/json'
     },
-    timeout: 10000,
-    withCredentials: true
+    timeout: 30000,
+    withCredentials: false
 });
 
 
 http.defaults.headers.common['Content-Type'] = 'application/json';
 http.defaults.headers.common['Accept'] = 'application/json';
-http.defaults.withCredentials = true;
 
 
 
