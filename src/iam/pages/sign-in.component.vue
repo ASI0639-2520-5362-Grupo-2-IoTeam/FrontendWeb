@@ -38,9 +38,33 @@ async function onSignIn(): Promise<void> {
     } catch (error: unknown) {
       const axiosError = error as AxiosError<ErrorResponseData>;
 
-      // Manejo de errores basado en la estructura de Axios
-      errorMessage.value =
-          axiosError.response?.data?.message || "Error al iniciar sesión. Inténtalo de nuevo.";
+      // Construir un mensaje informativo seguro
+      const status = axiosError.response?.status;
+      const serverMessage = axiosError.response?.data?.message;
+      const responseBody = axiosError.response?.data ? JSON.stringify(axiosError.response.data) : undefined;
+
+      // Enmascarar headers para registro seguro
+      const maskedHeaders: any = {};
+      try {
+        const headers = axiosError.response?.headers || {};
+        Object.keys(headers).forEach((k) => {
+          if (k.toLowerCase().includes('auth') || k.toLowerCase().includes('set-cookie') || k.toLowerCase().includes('token') || k.toLowerCase().includes('cookie')) {
+            maskedHeaders[k] = '***REDACTED***';
+          } else {
+            maskedHeaders[k] = headers[k];
+          }
+        });
+      } catch (e) { /* ignore */ }
+
+      console.error('[SignIn] Error during signIn:', { status, serverMessage, maskedHeaders });
+
+      if (status) {
+        errorMessage.value = `Error ${status}: ${serverMessage || 'Comprueba las credenciales o el servidor.'}`;
+      } else if (responseBody) {
+        errorMessage.value = serverMessage || responseBody || 'Error al iniciar sesión. Inténtalo de nuevo.';
+      } else {
+        errorMessage.value = axiosError.message || 'Error al iniciar sesión. Inténtalo de nuevo.';
+      }
     }
   } else {
     errorMessage.value = "Email y contraseña son requeridos.";
