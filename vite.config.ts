@@ -9,6 +9,7 @@ export default defineConfig({
     proxy: {
       '/api/v1': {
         target: 'https://plantcare-awcchhb2bfg3hxgf.canadacentral-01.azurewebsites.net',
+          //target: 'http://localhost:8090',
         changeOrigin: true,
         secure: false,
         ws: true,

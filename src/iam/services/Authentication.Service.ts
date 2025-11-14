@@ -81,7 +81,7 @@ export class AuthenticationService {
 
 
     async signInWithGoogle(googleToken: string) {
-        return axios.post(`${import.meta.env.VITE_API_URL}/auth/google/login`, { googleToken });
+        return axios.post(`${import.meta.env.VITE_PLANTCARE_API_URL}/auth/google/web`, { googleToken });
     }
 }
 
