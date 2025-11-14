@@ -237,7 +237,8 @@ export const useAuthenticationStore = defineStore("authentication", {
                 // Si respData está vacío, loguear detalles para diagnóstico (con token enmascarado)
                 if (!respData || Object.keys(respData).length === 0) {
                     // reconstruir masked info: incluir headers si están disponibles
-                    const maskedResp: any = maskTokenForLog(respRaw);
+                    const masked = maskTokenForLog(respRaw);
+                    const maskedResp: any = (masked && typeof masked === 'object') ? masked : { raw: masked };
                     if (respFull && respFull.headers) {
                         maskedResp._headers = Object.keys(respFull.headers || {});
                     }
