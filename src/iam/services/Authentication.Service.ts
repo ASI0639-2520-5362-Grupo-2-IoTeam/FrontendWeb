@@ -1,7 +1,7 @@
 import http from "../../shared/services/http-common.ts";
 import type { AxiosResponse } from 'axios';
 import axios from "axios";
-import.meta.env.VITE_API_URL
+import.meta.env.VITE_PLANTCARE_API_URL
 
 // Interfaces adaptadas a tu backend
 export interface SignUpRequest {
