@@ -5,6 +5,7 @@ import { SignInRequest} from "../model/sign-in.request.ts";
 import { useRouter } from 'vue-router';
 import { useToast } from 'primevue/usetoast';
 import type { AxiosError } from 'axios';
+import axios from 'axios';
 import logo from '../../assets/vue.svg';
 import { onMounted } from 'vue';
 
@@ -36,34 +37,49 @@ async function onSignIn(): Promise<void> {
       // Pasamos las dependencias (router y toast) al store
       await authenticationStore.signIn(signInRequest, router, toast);
     } catch (error: unknown) {
-      const axiosError = error as AxiosError<ErrorResponseData>;
+      // Log completo para diagnóstico
+      console.error('[SignIn] catch error full:', error);
 
-      // Construir un mensaje informativo seguro
-      const status = axiosError.response?.status;
-      const serverMessage = axiosError.response?.data?.message;
-      const responseBody = axiosError.response?.data ? JSON.stringify(axiosError.response.data) : undefined;
+      // Manejo robusto de errores: AxiosError o Error genérico u otro
+      if (axios.isAxiosError(error)) {
+        const axiosError = error as AxiosError<ErrorResponseData>;
+        const status = axiosError.response?.status;
+        const serverMessage = axiosError.response?.data?.message;
+        const responseBody = axiosError.response?.data ? JSON.stringify(axiosError.response.data) : undefined;
 
-      // Enmascarar headers para registro seguro
-      const maskedHeaders: any = {};
-      try {
-        const headers = axiosError.response?.headers || {};
-        Object.keys(headers).forEach((k) => {
-          if (k.toLowerCase().includes('auth') || k.toLowerCase().includes('set-cookie') || k.toLowerCase().includes('token') || k.toLowerCase().includes('cookie')) {
-            maskedHeaders[k] = '***REDACTED***';
-          } else {
-            maskedHeaders[k] = headers[k];
-          }
-        });
-      } catch (e) { /* ignore */ }
+        // Enmascarar headers para registro seguro
+        const maskedHeaders: any = {};
+        try {
+          const headers = axiosError.response?.headers || {};
+          Object.keys(headers).forEach((k) => {
+            if (k.toLowerCase().includes('auth') || k.toLowerCase().includes('set-cookie') || k.toLowerCase().includes('token') || k.toLowerCase().includes('cookie')) {
+              maskedHeaders[k] = '***REDACTED***';
+            } else {
+              maskedHeaders[k] = headers[k];
+            }
+          });
+        } catch (e) { /* ignore */ }
 
-      console.error('[SignIn] Error during signIn:', { status, serverMessage, maskedHeaders });
+        console.error('[SignIn] Axios error during signIn:', { status, serverMessage, maskedHeaders });
 
-      if (status) {
-        errorMessage.value = `Error ${status}: ${serverMessage || 'Comprueba las credenciales o el servidor.'}`;
-      } else if (responseBody) {
-        errorMessage.value = serverMessage || responseBody || 'Error al iniciar sesión. Inténtalo de nuevo.';
+        if (status) {
+          errorMessage.value = `Error ${status}: ${serverMessage || 'Comprueba las credenciales o el servidor.'}`;
+        } else if (responseBody) {
+          errorMessage.value = serverMessage || responseBody || 'Error al iniciar sesión. Inténtalo de nuevo.';
+        } else {
+          errorMessage.value = axiosError.message || 'Error al iniciar sesión. Inténtalo de nuevo.';
+        }
+      } else if (error instanceof Error) {
+        // Error genérico de JS
+        errorMessage.value = error.message || 'Error al iniciar sesión. Inténtalo de nuevo.';
       } else {
-        errorMessage.value = axiosError.message || 'Error al iniciar sesión. Inténtalo de nuevo.';
+        // Cualquier otro tipo
+        console.error('[SignIn] Unknown error type:', error);
+        try {
+          errorMessage.value = JSON.stringify(error) || 'Error al iniciar sesión. Inténtalo de nuevo.';
+        } catch (e) {
+          errorMessage.value = 'Error al iniciar sesión. Inténtalo de nuevo.';
+        }
       }
     }
   } else {
