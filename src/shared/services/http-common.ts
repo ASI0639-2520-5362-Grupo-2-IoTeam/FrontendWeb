@@ -7,7 +7,7 @@ import { authenticationInterceptor} from "../../iam/services/Authentication.Inte
 
 // Usar el proxy de Vite para evitar problemas CORS
 // El proxy reescribe /api a http://localhost:8090/api
-const API_BASE_URL: string = (import.meta.env.VITE_API_BASE_URL as string) || '/api/v1';
+const API_BASE_URL: string = (import.meta.env.VITE_PLANTCARE_API_URL as string) || '/api/v1';
 
 
 const http: AxiosInstance = axios.create({
