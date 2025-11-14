@@ -94,7 +94,7 @@ export class AuthenticationService {
 
 
     async signInWithGoogle(googleToken: string) {
-        return axios.post(`${import.meta.env.VITE_PLANTCARE_API_URL}/auth/google/web`, { googleToken });
+        return axios.post(`${import.meta.env.VITE_PLANTCARE_API_URL}/authentication/google/signin`, { googleToken });
     }
 
     // Fallback: obtener perfil del usuario autenticado
