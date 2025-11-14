@@ -1,5 +1,12 @@
 <template>
   <div class="plant-form-card">
+    <Button
+        icon="pi pi-arrow-left"
+        label="Back to Plants"
+        text
+        @click="goBack"
+        class="back-button"
+    />
     <h2 class="form-title">Add a Plant</h2>
 
     <form @submit.prevent="onSubmit" class="form-grid">
@@ -129,6 +136,10 @@ const onSubmit = async () => {
 const onReset = () => {
   Object.assign(form, emptyState());
 };
+
+const goBack = () => {
+  router.push('/plants');
+};
 </script>
 
 <style scoped>
@@ -218,6 +229,11 @@ const onReset = () => {
   color: var(--status-critical);
   border-radius: 6px;
   font-size: 13px;
+}
+
+.back-button {
+  align-self: flex-start;
+  margin-bottom: var(--spacing-md);
 }
 
 @media (max-width: 600px) {
