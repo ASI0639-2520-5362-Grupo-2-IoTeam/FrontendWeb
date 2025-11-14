@@ -74,6 +74,20 @@ function extractUuid(obj: any): string | null {
     return null;
 }
 
+// Helper: enmascara tokens en un objeto para logs seguros
+function maskTokenForLog(obj: any): any {
+    if (!obj || typeof obj !== 'object') return obj;
+    const copy: any = {};
+    for (const k of Object.keys(obj)) {
+        if (k.toLowerCase().includes('token') || k.toLowerCase().includes('jwt')) {
+            copy[k] = '***REDACTED***';
+        } else {
+            copy[k] = obj[k];
+        }
+    }
+    return copy;
+}
+
 export const useAuthenticationStore = defineStore("authentication", {
     // 1. Tipado del State
     state: (): AuthenticationState => ({
@@ -111,15 +125,27 @@ export const useAuthenticationStore = defineStore("authentication", {
             const token = localStorage.getItem('token');
             const userUuid = localStorage.getItem('userUuid');
             console.debug('[AuthStore] initialize userUuid from localStorage:', userUuid);
-            if (token && userUuid) {
+
+            if (token) {
                 try {
+                    // Intentar extraer payload desde el token
                     const parts = token.split('.');
                     const payload = parts[1] ? JSON.parse(atob(parts[1])) : {} as any;
+
+                    // Preferir el UUID guardado explícitamente, si no existe, intentar extraer del token
+                    const resolvedUuid = userUuid || payload?.sub || payload?.userId || payload?.id || payload?.uuid || null;
+
                     this.token = token;
-                    this.uuid = userUuid; // Usar el UUID guardado
+                    this.uuid = resolvedUuid;
                     this.email = payload.sub || null;
                     this.roles = payload.role ? [payload.role] : [];
                     this.isSignedIn = true;
+
+                    // Si resolvimos uuid desde el payload y no estaba en localStorage, guardarlo para futuras inicializaciones
+                    if (!userUuid && resolvedUuid) {
+                        localStorage.setItem('userUuid', resolvedUuid);
+                        console.debug('[AuthStore] initialize guardó userUuid extraído del token en localStorage');
+                    }
                 } catch (e) {
                     this.token = null;
                     this.uuid = null;
@@ -170,8 +196,28 @@ export const useAuthenticationStore = defineStore("authentication", {
                 // Si viene envuelto: response.data.data || response.data.body || response.data.result
                 const respData = respRaw.data || respRaw.body || respRaw.result || respRaw;
 
-                // Extraer token y otros campos posibles
-                const token = respData?.token || respData?.accessToken || respData?.jwt || null;
+                // Extraer token y otros campos posibles (desde body)
+                let token = respData?.token || respData?.accessToken || respData?.jwt || null;
+
+                // Si no hay token en body, intentar obtenerlo desde headers del Axios response (producción a veces lo envía ahí)
+                const respFull: any = response;
+                if (!token && respFull && respFull.headers) {
+                    const headers = respFull.headers;
+                    const authHeader = headers['authorization'] || headers['Authorization'] || headers['x-auth-token'] || headers['X-Auth-Token'];
+                    if (authHeader && typeof authHeader === 'string') {
+                        token = authHeader.replace(/^Bearer\s+/i, '').trim();
+                        console.debug('[AuthStore] token extraído de headers');
+                    }
+                }
+
+                // Fallback: si aún no hay token, puede que el AuthenticationService ya lo haya guardado en localStorage
+                if (!token) {
+                    const saved = localStorage.getItem('token');
+                    if (saved) {
+                        token = saved;
+                        console.debug('[AuthStore] token obtenido desde localStorage como fallback');
+                    }
+                }
 
                 // Intentar extraer uuid desde múltiples lugares: respData directo, respData.user, wrappers, o token JWT
                 let uuid = extractUuid(respData) || extractUuid(respData?.user) || extractUuid(respRaw) || null;
@@ -183,8 +229,47 @@ export const useAuthenticationStore = defineStore("authentication", {
                 const role = respData?.role || respData?.user?.role || null;
 
                 // Log de depuración de campos clave (sin imprimir token completo)
-                console.debug('[AuthStore] signIn response keys:', Object.keys(respRaw || {}));
-                console.debug('[AuthStore] signIn resolved uuid:', uuid);
+                try {
+                    console.debug('[AuthStore] signIn response keys:', Object.keys(respRaw || {}));
+                    console.debug('[AuthStore] signIn resolved uuid:', uuid);
+                } catch (e) { /* ignore */ }
+
+                // Si respData está vacío, loguear detalles para diagnóstico (con token enmascarado)
+                if (!respData || Object.keys(respData).length === 0) {
+                    // reconstruir masked info: incluir headers si están disponibles
+                    const maskedResp: any = maskTokenForLog(respRaw);
+                    if (respFull && respFull.headers) {
+                        maskedResp._headers = Object.keys(respFull.headers || {});
+                    }
+                    console.error('[AuthStore] respData vacío — detalle (masked):', maskedResp);
+                    try {
+                        console.error('[AuthStore] response.status:', respFull?.status, 'response.url:', respFull?.request?.responseURL || null);
+                    } catch (e) { /* ignore */ }
+                }
+
+                if (!uuid) {
+                    // Fallback avanzado: si tenemos token pero no uuid, intentar obtener perfil del backend
+                    if (token) {
+                        try {
+                            const profileResp = await new AuthenticationService().getProfile();
+                            const profileData = profileResp?.data || profileResp;
+                            const profileUuid = extractUuid(profileData) || extractUuid(profileData?.user) || null;
+                            if (profileUuid) {
+                                uuid = profileUuid;
+                                // rellenar email/role si vienen en el perfil
+                                if (!email) {
+                                    try { this.email = profileData.email || profileData.user?.email || this.email; } catch(e){}
+                                }
+                                if (!role) {
+                                    try { this.roles = profileData.role ? [profileData.role] : this.roles; } catch(e){}
+                                }
+                                console.debug('[AuthStore] fallback profile obtuvo uuid:', uuid);
+                            }
+                        } catch (e) {
+                            console.debug('[AuthStore] fallback getProfile falló:', e);
+                        }
+                    }
+                }
 
                 if (!uuid) {
                     console.error('[AuthStore] ERROR: El backend no devolvió el UUID en las rutas esperadas. Campos vistos:', Object.keys(respData || {}));

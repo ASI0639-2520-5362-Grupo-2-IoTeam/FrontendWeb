@@ -29,12 +29,12 @@ export interface LoginResponse {
 }
 
 // Helper para decodificar JWT y extraer payload
-function decodeJWT(token?: string | null): { sub: string; role: string; iat: number; exp: number } | null {
+function decodeJWT(token?: string | null): any | null {
     try {
         if (!token) return null;
 
         const parts = token.split('.');
-        if (parts.length !== 3 || !parts[1]) return null;
+        if (parts.length < 2 || !parts[1]) return null;
 
         const base64 = parts[1];
         const payload = JSON.parse(atob(base64));
@@ -57,8 +57,23 @@ export class AuthenticationService {
         // POST /api/auth/login (el baseURL ya incluye /api)
         const response = await http.post<LoginResponse>(`/auth/login`, signInRequest);
 
+        // Detectar token tanto en body como en headers (prod puede enviar en header)
+        let token = (response.data as any)?.token ?? null;
+        const headers = (response && (response as any).headers) || {};
+        if (!token) {
+            const authHeader = headers['authorization'] || headers['Authorization'] || headers['x-auth-token'] || headers['X-Auth-Token'];
+            if (authHeader && typeof authHeader === 'string') {
+                // Authorization: Bearer <token>
+                token = authHeader.replace(/^Bearer\s+/i, '').trim();
+            }
+        }
+
+        // Si encontramos token en headers, asegurarnos de exponerlo en response.data
+        if (token) {
+            (response.data as any).token = token;
+        }
+
         // Decodificar el JWT para extraer email y role
-        const token = response.data.token ?? null;
         const payload = decodeJWT(token);
 
         // Guardar el token en localStorage para el interceptor
@@ -69,12 +84,29 @@ export class AuthenticationService {
         // No sobrescribir el id con el email, solo agregar email y role si faltan
         if (payload) {
             if (!(response.data as any).email) {
-                (response.data as any).email = payload.sub;
+                (response.data as any).email = payload.sub || payload.email || null;
             }
             if (!(response.data as any).role) {
-                (response.data as any).role = payload.role;
+                (response.data as any).role = payload.role || null;
+            }
+
+            // Intentar extraer un id/uuid desde el payload y exponerlo en response.data
+            const possibleId = payload.sub || payload.userId || payload.id || payload.uuid || null;
+            if (possibleId && !(response.data as any).id && !(response.data as any).uuid) {
+                // Algunas APIs usan 'id', otras 'uuid' — poner en ambos para compatibilidad
+                (response.data as any).id = possibleId;
+                (response.data as any).uuid = possibleId;
             }
         }
+
+        // Log enmascarado para diagnósticos (no imprimir token sin enmascarar)
+        try {
+            const masked: any = {};
+            masked.data = { ...((response.data as any) || {}) };
+            if (masked.data.token) masked.data.token = '***REDACTED***';
+            masked.headers = Object.keys(headers || {});
+            console.debug('[AuthService] signIn response masked:', masked);
+        } catch (e) { /* ignore logging errors */ }
 
         return response as any;
     }
@@ -83,5 +115,14 @@ export class AuthenticationService {
     async signInWithGoogle(googleToken: string) {
         return axios.post(`${import.meta.env.VITE_PLANTCARE_API_URL}/auth/google/web`, { googleToken });
     }
-}
 
+    // Fallback: obtener perfil del usuario autenticado
+    async getProfile() {
+        try {
+            return await http.get('/auth/me');
+        } catch (e) {
+            // Propagar para que el caller lo gestione
+            throw e;
+        }
+    }
+}
