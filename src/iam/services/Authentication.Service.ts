@@ -56,61 +56,40 @@ export class AuthenticationService {
     }
 
     async signIn(signInRequest: SignInRequest): Promise<AxiosResponse<LoginResponse>> {
-        // POST /api/auth/login (el baseURL ya incluye /api)
+        // POST /api/auth/login
         const response = await http.post<LoginResponse>(`/auth/login`, signInRequest);
 
-        // Detectar token tanto en body como en headers (prod puede enviar en header)
-        let token = (response.data as any)?.token ?? null;
-        const headers = (response && (response as any).headers) || {};
-        if (!token) {
-            const authHeader = headers['authorization'] || headers['Authorization'] || headers['x-auth-token'] || headers['X-Auth-Token'];
-            if (authHeader && typeof authHeader === 'string') {
-                // Authorization: Bearer <token>
-                token = authHeader.replace(/^Bearer\s+/i, '').trim();
-            }
-        }
-
-        // Si encontramos token en headers, asegurarnos de exponerlo en response.data
-        if (token) {
-            (response.data as any).token = token;
-        }
-
-        // Decodificar el JWT para extraer email y role
-        const payload = decodeJWT(token);
+        const token = response.data.token;
+        const uuid = response.data.uuid;
 
         // Guardar el token en localStorage para el interceptor
         if (token) {
             localStorage.setItem('token', token);
         }
 
-        // No sobrescribir el id con el email, solo agregar email y role si faltan
+        // Decodificar el JWT para extraer email y role
+        const payload = decodeJWT(token);
         if (payload) {
-            if (!(response.data as any).email) {
-                (response.data as any).email = payload.sub || payload.email || null;
-            }
-            if (!(response.data as any).role) {
-                (response.data as any).role = payload.role || null;
-            }
-
-            // Intentar extraer un id/uuid desde el payload y exponerlo en response.data
-            const possibleId = payload.sub || payload.userId || payload.id || payload.uuid || null;
-            if (possibleId && !(response.data as any).id && !(response.data as any).uuid) {
-                // Algunas APIs usan 'id', otras 'uuid' — poner en ambos para compatibilidad
-                (response.data as any).id = possibleId;
-                (response.data as any).uuid = possibleId;
-            }
+            // Add email and role to the response data object
+            (response.data as any).email = payload.sub || payload.email || null;
+            (response.data as any).role = payload.role || null;
         }
 
-        // Log enmascarado para diagnósticos (no imprimir token sin enmascarar)
+        // Ensure 'id' and 'uuid' are present for the AuthStore.
+        // The backend sends 'uuid', so we make sure 'id' is also there for compatibility.
+        if (uuid) {
+            (response.data as any).id = uuid;
+        }
+
+        // Log enmascarado para diagnósticos
         try {
             const masked: any = {};
             masked.data = { ...((response.data as any) || {}) };
             if (masked.data.token) masked.data.token = '***REDACTED***';
-            masked.headers = Object.keys(headers || {});
-            console.debug('[AuthService] signIn response masked:', masked);
+            console.debug('[AuthService] signIn response data for AuthStore:', masked.data);
         } catch (e) { /* ignore logging errors */ }
 
-        return response as any;
+        return response;
     }
 
 
@@ -121,7 +100,9 @@ export class AuthenticationService {
     // Fallback: obtener perfil del usuario autenticado
     async getProfile() {
         try {
-            return await http.get('/auth/me');
+            // This should not be called if signIn is successful, but as a fallback,
+            // it should point to the correct endpoint.
+            return await http.get('/users/me');
         } catch (e) {
             // Propagar para que el caller lo gestione
             throw e;
