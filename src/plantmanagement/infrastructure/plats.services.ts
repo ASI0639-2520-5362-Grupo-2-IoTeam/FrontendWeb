@@ -19,7 +19,7 @@ export class PlantsService {
     private getAuthHeaders(): AxiosRequestConfig {
         const token = localStorage.getItem('token');
         if (!token) {
-            console.warn('[PlantsService] No token found in localStorage');
+            console.warn('[PlantsService] No token found in localStorage. Request will be sent without Authorization.');
         }
         return {
             headers: {
@@ -65,9 +65,9 @@ export class PlantsService {
         if (!userId || userId === 'undefined' || userId === 'null') {
             throw new Error('Invalid userId provided to getPlantsByUser');
         }
-        // GET /api/v1/plants/users/{userId}/plants
+        // GET /api/v1/users/{userId}/plants
         const res = await this.baseApi.http.get<any>(
-            `/plants/users/${encodeURIComponent(userId)}/plants`,
+            `/users/${encodeURIComponent(userId)}/plants`,
             this.getAuthHeaders()
         );
 
@@ -144,7 +144,7 @@ export class PlantsService {
 
     /**
      * Registra un riego para una planta específica
-     * POST /api/v1/plants/{plantId}/water
+     * POST /api/v1/plants/{plantId}/watering
      *
      * El backend:
      * 1. Autentica el token y obtiene userId
@@ -161,7 +161,7 @@ export class PlantsService {
         const body = wateredAt ? { wateredAt } : {};
 
         const res = await this.baseApi.http.post<any>(
-            `${this.resourceEndpoint}/${plantId}/water`,
+            `${this.resourceEndpoint}/${plantId}/watering`,
             body,
             this.getAuthHeaders()
         );
