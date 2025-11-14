@@ -1,3 +1,4 @@
+
 export interface Metric {
   id: number;
   plantId: number;
@@ -23,7 +24,7 @@ export interface Plant {
   imgUrl: string;
   bio: string;
   location: string;
-  status: 'healthy' | 'warning' | 'critical';
+  status: PlantStatus;
   lastWatered: string;
   nextWatering: string;
   metrics: Metric[];
@@ -31,3 +32,6 @@ export interface Plant {
   createdAt: string;
   updatedAt: string;
 }
+
+
+export type PlantStatus = 'healthy' | 'warning' | 'critical';

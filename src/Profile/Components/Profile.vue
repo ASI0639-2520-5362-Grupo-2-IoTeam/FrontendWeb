@@ -20,7 +20,7 @@ const location = ref('San Francisco, CA');
 const joinDate = ref('January 2024');
 
 const stats = ref<Stats[]>([
-  { icon: '🌱', value: 24, label: 'Total plantmanagement' },
+  { icon: '🌱', value: 24, label: 'Total plants' },
   { icon: '💧', value: 156, label: 'Watering Sessions' },
   { icon: '📅', value: '8 months', label: 'Member Since' },
   { icon: '✅', value: '95%', label: 'Success Rate' },

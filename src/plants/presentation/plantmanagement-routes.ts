@@ -1,4 +1,5 @@
-// Rutas internas del bounded context PlantManagement
+import type { RouteRecordRaw } from 'vue-router';
+
 export default [
   {
     path: '',
@@ -16,5 +17,4 @@ export default [
     component: () => import('./views/PlantDetail.vue'),
     props: true
   }
-];
-
+] as RouteRecordRaw[];

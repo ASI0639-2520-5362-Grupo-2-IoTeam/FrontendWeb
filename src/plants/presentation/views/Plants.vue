@@ -3,9 +3,9 @@ import { ref, computed, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
-import { PlantsService } from '../../infrastructure/plats.services.ts';
-import type { Plant } from '../../domain/model/plants.entity.ts';
-import { useAuthenticationStore } from '../../../iam/services/Authentication.Store.ts';
+import type { Plant } from '../../domain/model/plants.entity';
+import { useAuthenticationStore } from '../../../iam/services/Authentication.Store';
+import { usePlantManagementStore } from '../../application/plantmanagement.store';
 
 interface Filter {
   id: string;
@@ -16,65 +16,35 @@ interface Filter {
 const router = useRouter();
 const activeFilter = ref('all');
 const searchQuery = ref('');
-const plants = ref<Plant[]>([]);
-const plantsService = new PlantsService();
-const isLoading = ref(true);
 
 const authStore = useAuthenticationStore();
-// Ensure the authStore is initialized from localStorage if needed
-if (!authStore.isSignedIn) {
-  try { authStore.initialize(); } catch (e) { /* ignore */ }
-}
+const plantStore = usePlantManagementStore();
 
 const userUuid = computed(() => authStore.uuid);
 
-const fetchPlants = async () => {
-  const uid = userUuid.value;
-  if (!uid) {
-    plants.value = [];
-    isLoading.value = false;
-    console.debug('[plantmanagement] No userUuid, showing empty state');
-    return;
-  }
-
-  isLoading.value = true;
-  try {
-    const res = await plantsService.getPlantsByUser(uid);
-    plants.value = res.data;
-    console.debug('[plantmanagement] Plants loaded:', plants.value);
-  } catch (e) {
-    plants.value = [];
-    console.error('[plantmanagement] Error loading plants:', e);
-  } finally {
-    isLoading.value = false;
-  }
-};
-
-// Watch for changes in the authentication state
 watch(
   () => authStore.isSignedIn,
   (isReady) => {
-    if (isReady) {
-      fetchPlants();
+    if (isReady && userUuid.value) {
+      plantStore.fetchPlants(userUuid.value);
     } else {
-      plants.value = [];
-      isLoading.value = true;
+      plantStore.$reset();
     }
   },
-  { immediate: true } // Run the watcher immediately on component mount
+  { immediate: true }
 );
 
 const filters = computed<Filter[]>(() => [
-  { id: 'all', label: 'All Plants', count: plants.value.length },
-  { id: 'healthy', label: 'Healthy', count: plants.value.filter(p => p.status === 'healthy').length },
-  { id: 'warning', label: 'Warning', count: plants.value.filter(p => p.status === 'warning').length },
-  { id: 'critical', label: 'Critical', count: plants.value.filter(p => p.status === 'critical').length },
+  { id: 'all', label: 'All Plants', count: plantStore.plants.length },
+  { id: 'healthy', label: 'Healthy', count: plantStore.plants.filter(p => p.status === 'healthy').length },
+  { id: 'warning', label: 'Warning', count: plantStore.plants.filter(p => p.status === 'warning').length },
+  { id: 'critical', label: 'Critical', count: plantStore.plants.filter(p => p.status === 'critical').length },
 ]);
 
 const filteredPlants = computed(() => {
   let result = activeFilter.value === 'all'
-      ? plants.value
-      : plants.value.filter(plant => plant.status === activeFilter.value);
+      ? plantStore.plants
+      : plantStore.plants.filter(plant => plant.status === activeFilter.value);
 
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase();
@@ -87,16 +57,8 @@ const filteredPlants = computed(() => {
   return result;
 });
 
-const getStatusLabel = (status: any): string => {
-  if (typeof status === 'object' && status !== null && 'label' in status) {
-    return status.label;
-  }
-  switch (status) {
-    case 'healthy': return 'Healthy';
-    case 'warning': return 'Warning';
-    case 'critical': return 'Critical';
-    default: return String(status);
-  }
+const getStatusLabel = (status: string): string => {
+  return status.charAt(0).toUpperCase() + status.slice(1);
 };
 
 const navigateToPlant = (plantId: number) => {
@@ -164,7 +126,7 @@ const getLatestHumidity = (plant: Plant): number | string => {
       </button>
     </div>
 
-    <div v-if="isLoading" class="loading-state">
+    <div v-if="plantStore.loading" class="loading-state">
       <div class="loading-icon">🌱</div>
       <p>Loading your plants...</p>
     </div>

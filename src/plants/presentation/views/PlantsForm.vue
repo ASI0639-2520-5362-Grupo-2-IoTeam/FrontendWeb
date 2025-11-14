@@ -44,20 +44,17 @@
 <script setup lang="ts">
 import { reactive } from 'vue';
 import { useRouter } from 'vue-router';
-import { useAuthenticationStore } from '../../../iam/services/Authentication.Store.ts';
+import { useAuthenticationStore } from '../../../iam/services/Authentication.Store';
 import InputText from 'primevue/inputtext';
 import Textarea from 'primevue/textarea';
 import Button from 'primevue/button';
-import { PlantsService} from "../../infrastructure/plats.services.ts";
-import type { Plant } from '../../domain/model/plants.entity.ts';
+import { PlantsService } from '../../infrastructure/plats.services';
+import type { Plant } from '../../domain/model/plants.entity';
 
 const router = useRouter();
 const plantsService = new PlantsService();
 
 const authStore = useAuthenticationStore();
-if (!authStore.isSignedIn) {
-  try { authStore.initialize(); } catch (e) { /* ignore */ }
-}
 
 const emptyState = (): Partial<Plant> => ({
   name: '',
@@ -74,7 +71,6 @@ const serverError = reactive<{ message: string | null }>({ message: null });
 const validate = () => {
   errors.name = form.name && form.name.trim() ? '' : 'Name is required';
   errors.type = form.type && form.type.trim() ? '' : 'Type is required';
-
   return !Object.values(errors).some(v => v);
 };
 
@@ -82,17 +78,15 @@ const onSubmit = async () => {
   serverError.message = null;
   if (!validate()) return;
 
-  // Verificar autenticación antes de enviar
   if (!authStore.isSignedIn || !authStore.token) {
     serverError.message = 'You must be signed in to create a plant. Redirecting...';
     setTimeout(() => router.push({ name: 'SignIn' }), 2000);
     return;
   }
 
-  // Nuevo contrato: enviar userId explícito junto con los demás datos
   const userId = authStore.uuid || localStorage.getItem('userUuid') || '';
   if (!userId) {
-    serverError.message = 'No se encontró el userId para asociar la planta.';
+    serverError.message = 'No userId found to associate the plant.';
     return;
   }
 
@@ -107,43 +101,27 @@ const onSubmit = async () => {
 
   try {
     const createResponse = await plantsService.createPlant(payload);
-    console.log('✅ Plant created successfully:', createResponse.data);
-
     const newPlantId = createResponse.data.id;
     if (newPlantId) {
-      try {
-        const now = new Date().toISOString();
-        await plantsService.waterPlant(newPlantId, now);
-        console.log(`✅ Initial watering schedule set for plant ${newPlantId} at ${now}`);
-      } catch (waterError: any) {
-        console.error(`❌ Failed to set initial watering for plant ${newPlantId}:`, waterError);
-        // Opcional: informar al usuario que el riego inicial falló
-        serverError.message = 'Plant created, but failed to set initial watering schedule.';
-      }
+      const now = new Date().toISOString();
+      await plantsService.waterPlant(newPlantId, now);
     }
-
-    // Redirigir a la lista de plantas tras éxito
     router.push('/plants');
   } catch (err: any) {
-    console.error('❌ Error creating plant:', err);
-
-    // Manejo específico de errores HTTP
     if (err?.response?.status === 401) {
-      serverError.message = '⚠️ Session expired. Please sign in again.';
+      serverError.message = 'Session expired. Please sign in again.';
       setTimeout(() => {
         authStore.signOut();
         router.push({ name: 'SignIn' });
       }, 2000);
     } else if (err?.response?.status === 403) {
-      serverError.message = '⚠️ You do not have permission to create plants.';
+      serverError.message = 'You do not have permission to create plants.';
     } else if (err?.response?.status === 400) {
-      // Error de validación del backend
       const backendMsg = err?.response?.data?.message || err?.response?.data || 'Invalid data';
-      serverError.message = `❌ Validation error: ${backendMsg}`;
+      serverError.message = `Validation error: ${backendMsg}`;
     } else {
-      // Error genérico o de red
       const backendMsg = err?.response?.data?.message || err?.message || 'Unknown error';
-      serverError.message = `❌ Error: ${backendMsg}`;
+      serverError.message = `Error: ${backendMsg}`;
     }
   }
 };
@@ -230,39 +208,6 @@ const onReset = () => {
   color: var(--text-secondary) !important;
   padding: 10px 14px;
   border-radius: var(--radius-md);
-}
-
-.dropdown-status-option {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-semibold);
-  padding: 4px 0;
-}
-.dropdown-status-selected {
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-semibold);
-  padding: 0;
-}
-.dropdown-status-option[data-value="healthy"] .status-dot-preview {
-  background: var(--status-healthy, #4caf50);
-}
-.dropdown-status-option[data-value="warning"] .status-dot-preview {
-  background: var(--status-warning, #ff9800);
-}
-.dropdown-status-option[data-value="critical"] .status-dot-preview {
-  background: var(--status-critical, #f44336);
-}
-.status-dot-preview {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  display: inline-block;
-}
-.dropdown-placeholder {
-  color: #aaa;
-  font-style: italic;
 }
 
 .server-error {

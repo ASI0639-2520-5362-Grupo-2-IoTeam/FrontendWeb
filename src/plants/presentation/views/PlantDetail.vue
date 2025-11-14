@@ -9,8 +9,8 @@ import Toast from 'primevue/toast';
 import ProgressSpinner from 'primevue/progressspinner';
 import { useConfirm } from "primevue/useconfirm";
 import { useToast } from "primevue/usetoast";
-import { PlantsService } from '../../infrastructure/plats.services.ts';
-import type { Plant as PlantEntity, Metric } from '../../domain/model/plants.entity.ts';
+import { PlantsService } from '../../infrastructure/plats.services';
+import type { Plant as PlantEntity, Metric } from '../../domain/model/plants.entity';
 
 const router = useRouter();
 const route = useRoute();

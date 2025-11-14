@@ -18,7 +18,7 @@ interface Activity {
 }
 
 const stats = ref<Stat[]>([
-  { icon: '🌱', value: '24', label: 'Total plantmanagement', trend: '+3 this month', trendUp: true },
+  { icon: '🌱', value: '24', label: 'Total plants', trend: '+3 this month', trendUp: true },
   { icon: '⚠️', value: '2', label: 'Active Alerts', trend: '-1 from last week', trendUp: false },
   { icon: '💧', value: '68%', label: 'Avg Humidity', trend: '+5% this week', trendUp: true },
   { icon: '✅', value: '95%', label: 'Health Score', trend: 'Excellent', trendUp: true },

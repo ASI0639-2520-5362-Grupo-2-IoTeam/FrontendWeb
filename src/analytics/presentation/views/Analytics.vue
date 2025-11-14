@@ -3,9 +3,9 @@
 import { ref, computed, onMounted } from 'vue'
 import { useAuthenticationStore } from '../../../iam/services/Authentication.Store.ts'
 import { AnalyticsService } from '../../infrastructure/analytics.service.ts'
-import { PlantsService } from '../../../plantmanagement/infrastructure/plats.services.ts'
+import { PlantsService } from '../../../plants/infrastructure/plats.services.ts'
 import type { Analytics } from '../../domain/model/analytics.entity.ts'
-import type { Plant } from '../../../plantmanagement/domain/model/plants.entity.ts'
+import type { Plant } from '../../../plants/domain/model/plants.entity.ts'
 
 interface Summary {
   avgHumidity: number
@@ -169,7 +169,7 @@ onMounted(async () => {
 
     <!-- Stats Cards -->
     <div class="stats-grid">
-      <!-- Total plantmanagement Card -->
+      <!-- Total plants Card -->
       <div class="card stats-card">
         <div class="card-content">
           <div class="stats-info">
@@ -183,7 +183,7 @@ onMounted(async () => {
         </div>
       </div>
 
-      <!-- Healthy plantmanagement Card -->
+      <!-- Healthy plants Card -->
       <div class="card stats-card">
         <div class="card-content">
           <div class="stats-info">

@@ -3,7 +3,7 @@
 import { ref, onMounted, computed } from 'vue'
 
 const experts = [
-  { id: 1, initials: 'DP', name: 'Dr. Plant Expert', specialty: 'Horticulturist · Tropical plantmanagement' },
+  { id: 1, initials: 'DP', name: 'Dr. Plant Expert', specialty: 'Horticulturist · Tropical plants' },
   { id: 2, initials: 'GT', name: 'Green Thumb Guru', specialty: 'Plant Care Specialist · Indoor Gardens' }
 ]
 
