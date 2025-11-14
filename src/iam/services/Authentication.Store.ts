@@ -104,11 +104,11 @@ export const useAuthenticationStore = defineStore("authentication", {
             try {
                 const response = await new AuthenticationService().signIn(payload);
                 // El backend debe devolver el UUID real en 'id'
-                const { token, uuid, email, role } = response.data as any;
+                const { token, id: uuid, email, role } = response.data as any;
                 // Log de depuración para verificar el id recibido
                 console.debug('[AuthStore] signIn response uuid:', uuid);
                 if (!uuid || uuid === 'undefined' || uuid === 'null') {
-                    console.error('[AuthStore] ERROR: El backend no devolvió el UUID en el campo uuid.');
+                    console.error('[AuthStore] ERROR: El backend no devolvió el UUID en el campo id.');
                 }
                 this.uuid = uuid || null;
                 this.email = email;
