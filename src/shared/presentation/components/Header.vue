@@ -1,13 +1,22 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import Button from 'primevue/button';
 import Badge from 'primevue/badge';
 import Avatar from 'primevue/avatar';
 import { useRouter } from 'vue-router';
+import { useAuthenticationStore } from '../../../iam/services/Authentication.Store';
 
 const emit = defineEmits<{
   menuClick: [];
 }>();
+
+const authStore = useAuthenticationStore();
+
+const userName = computed(() => {
+  if (authStore.email) return authStore.email.split('@')[0];
+  if (authStore.uuid) return `User-${authStore.uuid.substring(0,6)}`;
+  return 'Guest';
+});
 
 const theme = ref<'light' | 'dark'>('light');
 
@@ -40,7 +49,7 @@ const goToProfile = () => {
       >
         <span class="menu-icon">☰</span>
       </Button>
-      <h1 class="greeting">Hello, John!  👋</h1>
+      <h1 class="greeting">Hello, {{ userName }}!  👋</h1>
     </div>
 
     <div class="header-right">
