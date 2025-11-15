@@ -1,111 +1,92 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { useDashboard } from '../composables/useDashboard';
 import Button from 'primevue/button';
 
-interface Stat {
-  icon: string;
-  value: string;
-  label: string;
-  trend: string;
-  trendUp: boolean;
-}
-
-interface Activity {
-  icon: string;
-  title: string;
-  description: string;
-  time: string;
-}
-
-const stats = ref<Stat[]>([
-  { icon: '🌱', value: '24', label: 'Total plants', trend: '+3 this month', trendUp: true },
-  { icon: '⚠️', value: '2', label: 'Active Alerts', trend: '-1 from last week', trendUp: false },
-  { icon: '💧', value: '68%', label: 'Avg Humidity', trend: '+5% this week', trendUp: true },
-  { icon: '✅', value: '95%', label: 'Health Score', trend: 'Excellent', trendUp: true },
-]);
-
-const recentActivities = ref<Activity[]>([
-  { icon: '💧', title: 'Watered Monstera', description: 'Completed watering task', time: '2 hours ago' },
-  { icon: '🌡️', title: 'Low Humidity Alert', description: 'Snake Plant needs attention', time: '4 hours ago' },
-  { icon: '📷', title: 'Added New Plant', description: 'Peace Lily added to collection', time: 'Yesterday' },
-  { icon: '✅', title: 'Fertilized Ficus', description: 'Monthly feeding completed', time: '2 days ago' },
-]);
-
-const handleWaterNow = () => {
-  console.log('Watering plant...');
-};
-
-const handleViewAll = () => {
-  console.log('View all activities...');
-};
+const {
+  loading,
+  error,
+  stats,
+  recentActivities,
+  nextWateringPlant,
+  handleWaterNow,
+  handleViewAll,
+} = useDashboard();
 </script>
 
 <template>
   <div class="dashboard">
-    <!-- Stats Overview -->
-    <div class="stats-grid">
-      <div
-          v-for="(stat, index) in stats"
-          :key="index"
-          class="stat-card"
-      >
-        <div class="stat-header">
-          <div>
-            <div class="stat-value">{{ stat.value }}</div>
-            <div class="stat-label">{{ stat.label }}</div>
-            <span
-                :class="['stat-trend', stat.trendUp ? 'up' : 'down']"
-            >
-              {{ stat.trendUp ? '↑' : '↓' }} {{ stat.trend }}
-            </span>
+    <div v-if="loading" class="state-message">
+      <p>Loading dashboard...</p>
+    </div>
+
+    <div v-else-if="error" class="state-message">
+      <p>{{ error }}</p>
+    </div>
+
+    <template v-else>
+      <div class="stats-grid">
+        <div
+            v-for="(stat, index) in stats"
+            :key="stat.label || index"
+            class="stat-card"
+        >
+          <div class="stat-header">
+            <div>
+              <div class="stat-value">{{ stat.value }}</div>
+              <div class="stat-label">{{ stat.label }}</div>
+              <span
+                  v-if="stat.trend"
+                  :class="['stat-trend', stat.trendUp ? 'up' : 'down']"
+              >
+                {{ stat.trendUp ? '↑' : '↓' }} {{ stat.trend }}
+              </span>
+            </div>
+            <div class="stat-icon">{{ stat.icon }}</div>
           </div>
-          <div class="stat-icon">{{ stat.icon }}</div>
         </div>
       </div>
-    </div>
 
-    <!-- Next Plant to Water -->
-    <div class="next-watering-card">
-      <div class="next-watering-content">
-        <div class="next-watering-label">Next Plant to Water</div>
-        <div class="next-watering-plant">🌿 Fiddle Leaf Fig</div>
-        <div class="next-watering-time">Due in 2 hours • Living Room</div>
-      </div>
-      <Button
-          class="next-watering-button"
-          label="Water Now"
-          @click="handleWaterNow"
-      />
-    </div>
-
-    <!-- Recent Activity -->
-    <div class="section">
-      <div class="section-header">
-        <h2 class="section-title">Recent Activity</h2>
+      <div v-if="nextWateringPlant" class="next-watering-card">
+        <div class="next-watering-content">
+          <div class="next-watering-label">Next Plant to Water</div>
+          <div class="next-watering-plant">{{ nextWateringPlant.plantName }}</div>
+          <div class="next-watering-time">{{ nextWateringPlant.timeDue }} • {{ nextWateringPlant.location }}</div>
+        </div>
         <Button
-            label="View All"
-            outlined
-            @click="handleViewAll"
+            class="next-watering-button"
+            label="Water Now"
+            @click="handleWaterNow"
         />
       </div>
 
-      <div class="recent-activity">
-        <div class="activity-list">
-          <div
-              v-for="(activity, index) in recentActivities"
-              :key="index"
-              class="activity-item"
-          >
-            <div class="activity-icon">{{ activity.icon }}</div>
-            <div class="activity-content">
-              <div class="activity-title">{{ activity.title }}</div>
-              <div class="activity-description">{{ activity.description }}</div>
+      <div class="section">
+        <div class="section-header">
+          <h2 class="section-title">Recent Activity</h2>
+          <Button
+              label="View All"
+              outlined
+              @click="handleViewAll"
+          />
+        </div>
+
+        <div class="recent-activity">
+          <div class="activity-list">
+            <div
+                v-for="(activity, index) in recentActivities"
+                :key="activity.title || index"
+                class="activity-item"
+            >
+              <div class="activity-icon">{{ activity.icon }}</div>
+              <div class="activity-content">
+                <div class="activity-title">{{ activity.title }}</div>
+                <div class="activity-description">{{ activity.description }}</div>
+              </div>
+              <div class="activity-time">{{ activity.time }}</div>
             </div>
-            <div class="activity-time">{{ activity.time }}</div>
           </div>
         </div>
       </div>
-    </div>
+    </template>
   </div>
 </template>
 
@@ -113,6 +94,13 @@ const handleViewAll = () => {
 .dashboard {
   max-width: 1400px;
   margin: 0 auto;
+}
+
+.state-message {
+  text-align: center;
+  padding: 4rem;
+  font-size: 1.2rem;
+  color: var(--text-secondary);
 }
 
 .section {
