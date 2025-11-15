@@ -1,37 +1,74 @@
-export interface AnalyticsSummary {
-  /** Promedio de humedad durante el período (en porcentaje). */
-  avgHumidity: number;
-
-  /** Promedio de humedad del suelo durante el período (en porcentaje). */
-  avgSoilMoisture: number;
-
-  /** Número total de riegos durante el período. */
-  wateringCount: number;
-
-  /** Número de alertas críticas generadas durante el período. */
-  criticalAlerts: number;
-}
-
-export interface Analytics {
-  /** Identificador único del análisis. */
+/**
+ * Datos de sensor recibidos del backend
+ */
+export interface SensorData {
+  /** ID único del dato del sensor */
   id: number;
 
-  /** El ID del usuario al que pertenece este análisis (UUID string). */
-  userId: string;
+  /** ID del dispositivo/sensor */
+  device_id: string;
 
-  /** El ID de la planta analizada. */
-  plantId: number;
+  /** Temperatura en grados Celsius */
+  temperature: number;
 
-  /** Fecha de inicio del período de análisis (ISO 8601 string). */
+  /** Humedad ambiental en porcentaje */
+  humidity: number;
+
+  /** Nivel de luz */
+  light: number;
+
+  /** Humedad del suelo en porcentaje */
+  soil_humidity: number;
+
+  /** Fecha de creación del registro (ISO 8601 string) */
+  created_at: string;
+}
+
+/**
+ * Resumen estadístico calculado a partir de los datos del sensor
+ */
+export interface AnalyticsSummary {
+  /** Promedio de temperatura durante el período (°C) */
+  avgTemperature: number;
+
+  /** Promedio de humedad ambiental durante el período (%) */
+  avgHumidity: number;
+
+  /** Promedio de humedad del suelo durante el período (%) */
+  avgSoilMoisture: number;
+
+  /** Promedio de luz durante el período */
+  avgLight: number;
+
+  /** Temperatura mínima registrada */
+  minTemperature: number;
+
+  /** Temperatura máxima registrada */
+  maxTemperature: number;
+
+  /** Número total de lecturas */
+  totalReadings: number;
+}
+
+/**
+ * Analytics agregados por dispositivo/planta
+ */
+export interface Analytics {
+  /** ID del dispositivo asociado */
+  deviceId: string;
+
+  /** ID de la planta (si está asociada) */
+  plantId?: number;
+
+  /** Fecha de inicio del período de análisis */
   periodStart: string;
 
-  /** Fecha de fin del período de análisis (ISO 8601 string). */
+  /** Fecha de fin del período de análisis */
   periodEnd: string;
 
-  /** Resumen estadístico del período analizado. */
+  /** Resumen estadístico del período */
   summary: AnalyticsSummary;
 
-  /** Fechas del backend (opcional). */
-  createdAt?: string;
-  updatedAt?: string;
+  /** Datos crudos del sensor */
+  sensorData: SensorData[];
 }

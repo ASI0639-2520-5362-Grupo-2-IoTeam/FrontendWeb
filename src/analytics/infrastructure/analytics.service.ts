@@ -1,134 +1,130 @@
-import type { Analytics, AnalyticsSummary } from "../domain/model/analytics.entity.ts";
-import { BaseApi, ENDPOINTS } from "../../shared/infrastructure/base-endpoint";
-
+import type { Analytics, SensorData } from "../domain/model/analytics.entity.ts";
+import http from "../../shared/services/http-common.ts";
+import type { AxiosResponse } from "axios";
+import { AnalyticsAssembler } from "./assembler/analytics-assembler.ts";
 
 export class AnalyticsService {
-    private baseApi: BaseApi;
+    private resourceEndpoint = '/analytics';
 
-    constructor() {
-        this.baseApi = new BaseApi();
+    /**
+     * Obtener todos los datos de sensores
+     * GET /api/v1/analytics/data
+     */
+    async getAllSensorData(): Promise<AxiosResponse<SensorData[]>> {
+        const res = await http.get<any[]>(`${this.resourceEndpoint}/data`);
+        return res;
     }
 
-    // Endpoint de la fake API para analytics
-    resourceEndpoint = ENDPOINTS.ANALYTICS;
-
-    private mapBackendToAnalytics(raw: any): Analytics {
-        return {
-            id: Number(raw.id),
-            userId: String(raw.userId),
-            plantId: Number(raw.plantId),
-            periodStart: raw.periodStart ?? '',
-            periodEnd: raw.periodEnd ?? '',
-            summary: {
-                avgHumidity: raw.summary?.avgHumidity != null ? Number(raw.summary.avgHumidity) : 0,
-                avgSoilMoisture: raw.summary?.avgSoilMoisture != null ? Number(raw.summary.avgSoilMoisture) : 0,
-                wateringCount: raw.summary?.wateringCount != null ? Number(raw.summary.wateringCount) : 0,
-                criticalAlerts: raw.summary?.criticalAlerts != null ? Number(raw.summary.criticalAlerts) : 0
-            } as AnalyticsSummary,
-            createdAt: raw.createdAt,
-            updatedAt: raw.updatedAt
-        } as Analytics;
+    /**
+     * Obtener datos de sensor para un dispositivo específico
+     * GET /api/v1/analytics/devices/{deviceId}/data
+     */
+    async getSensorDataByDevice(deviceId: string): Promise<AxiosResponse<SensorData[]>> {
+        if (!deviceId || deviceId === 'undefined' || deviceId === 'null') {
+            throw new Error('Invalid deviceId provided to getSensorDataByDevice');
+        }
+        const res = await http.get<any[]>(`${this.resourceEndpoint}/devices/${encodeURIComponent(deviceId)}/data`);
+        return res;
     }
 
+    /**
+     * Importar datos de sensor
+     * POST /api/v1/analytics/imports
+     */
+    async importSensorData(sensorData: Omit<SensorData, 'id'>[]): Promise<AxiosResponse<any>> {
+        const res = await http.post<any>(`${this.resourceEndpoint}/imports`, sensorData);
+        return res;
+    }
 
-    async getAnalyticsByUser(userId: string) {
-        // Validación defensiva: evitar peticiones con userId inválido
+    /**
+     * Obtener analytics agregados para las plantas de un usuario
+     * Calcula estadísticas desde los datos de las plantas
+     */
+    async getAnalyticsByUser(userId: string): Promise<AxiosResponse<Analytics[]>> {
         if (!userId || userId === 'undefined' || userId === 'null') {
             throw new Error('Invalid userId provided to getAnalyticsByUser');
         }
-        // GET https://fakeapiplant.vercel.app/analytics?userId={userId}
-        const res = await this.baseApi.http.get<any[]>(`${this.resourceEndpoint}?userId=${encodeURIComponent(userId)}`);
-        const mapped = (res.data || []).map(r => this.mapBackendToAnalytics(r));
-        return { ...res, data: mapped };
+        
+        // Obtener todos los datos y filtrar por el contexto del usuario
+        // En este caso, necesitamos obtener las plantas del usuario y luego sus métricas
+        const res = await http.get<any[]>(`${this.resourceEndpoint}/data`);
+        
+        // Los datos serán procesados y agrupados por el assembler
+        const analytics = AnalyticsAssembler.aggregateByUser(res.data, userId);
+        
+        return { ...res, data: analytics };
     }
 
-
-    async getAnalyticsByPlant(plantId: number | string) {
-        // GET https://fakeapiplant.vercel.app/analytics?plantId={plantId}
-        const res = await this.baseApi.http.get<any[]>(`${this.resourceEndpoint}?plantId=${plantId}`);
-        const mapped = (res.data || []).map(r => this.mapBackendToAnalytics(r));
-        return { ...res, data: mapped };
-    }
-
-
-    async getAnalyticsById(analyticsId: number | string) {
-        // GET https://fakeapiplant.vercel.app/analytics/{analyticsId}
-        const res = await this.baseApi.http.get<any>(`${this.resourceEndpoint}/${analyticsId}`);
-        return { ...res, data: this.mapBackendToAnalytics(res.data) };
-    }
-
-
-    async getAnalyticsByUserAndPlant(userId: string, plantId: number | string) {
-        // Validación defensiva
-        if (!userId || userId === 'undefined' || userId === 'null') {
-            throw new Error('Invalid userId provided to getAnalyticsByUserAndPlant');
+    /**
+     * Obtener analytics para una planta específica usando sus métricas
+     */
+    async getAnalyticsByPlant(plantId: number, deviceId?: string): Promise<AxiosResponse<Analytics>> {
+        let sensorData: SensorData[];
+        
+        if (deviceId) {
+            const res = await this.getSensorDataByDevice(deviceId);
+            sensorData = res.data;
+        } else {
+            const res = await this.getAllSensorData();
+            sensorData = res.data;
         }
-        // GET https://fakeapiplant.vercel.app/analytics?userId={userId}&plantId={plantId}
-        const res = await this.baseApi.http.get<any[]>(`${this.resourceEndpoint}?userId=${encodeURIComponent(userId)}&plantId=${plantId}`);
-        const mapped = (res.data || []).map(r => this.mapBackendToAnalytics(r));
-        return { ...res, data: mapped };
+        
+        const analytics = AnalyticsAssembler.aggregateByPlant(sensorData, plantId, deviceId);
+        
+        return {
+            data: analytics,
+            status: 200,
+            statusText: 'OK',
+            headers: {},
+            config: {} as any
+        };
     }
 
+    /**
+     * Calcular analytics desde las métricas de una planta
+     */
+    calculateAnalyticsFromMetrics(plantId: number, metrics: any[], deviceId?: string): Analytics {
+        return AnalyticsAssembler.fromPlantMetrics(plantId, metrics, deviceId);
+    }
 
-    async createAnalytics(analyticsResource: Omit<Analytics, 'id'>) {
-        // POST https://fakeapiplant.vercel.app/analytics
-        const body = {
-            ...analyticsResource,
-            plantId: Number(analyticsResource.plantId),
-            summary: {
-                ...analyticsResource.summary,
-                avgHumidity: Number(analyticsResource.summary.avgHumidity || 0),
-                avgSoilMoisture: Number(analyticsResource.summary.avgSoilMoisture || 0),
-                wateringCount: Number(analyticsResource.summary.wateringCount || 0),
-                criticalAlerts: Number(analyticsResource.summary.criticalAlerts || 0)
+    /**
+     * Obtener el promedio de los últimos N datos de sensores
+     */
+    async getRecentAverages(limit: number = 5): Promise<AxiosResponse<any>> {
+        const res = await this.getAllSensorData();
+        const recentData = res.data.slice(-limit); // Últimos N registros
+        
+        if (recentData.length === 0) {
+            return {
+                ...res,
+                data: {
+                    avgTemperature: 0,
+                    avgHumidity: 0,
+                    avgSoilMoisture: 0,
+                    avgLight: 0,
+                    count: 0,
+                    period: { start: null, end: null }
+                }
+            };
+        }
+
+        const summary = AnalyticsAssembler.calculateSummary(
+            recentData.map((d: any) => AnalyticsAssembler.mapSensorData(d))
+        );
+
+        const dates = recentData.map((d: any) => d.created_at);
+        
+        return {
+            ...res,
+            data: {
+                ...summary,
+                count: recentData.length,
+                period: {
+                    start: dates[0],
+                    end: dates[dates.length - 1]
+                },
+                history: recentData
             }
         };
-        const res = await this.baseApi.http.post<any>(`${this.resourceEndpoint}`, body);
-        return { ...res, data: this.mapBackendToAnalytics(res.data) };
-    }
-
-
-    async updateAnalytics(analyticsId: number | string, analyticsResource: Analytics) {
-        // PUT https://fakeapiplant.vercel.app/analytics/{analyticsId}
-        const body = {
-            ...analyticsResource,
-            plantId: Number(analyticsResource.plantId),
-            summary: {
-                ...analyticsResource.summary,
-                avgHumidity: Number(analyticsResource.summary.avgHumidity || 0),
-                avgSoilMoisture: Number(analyticsResource.summary.avgSoilMoisture || 0),
-                wateringCount: Number(analyticsResource.summary.wateringCount || 0),
-                criticalAlerts: Number(analyticsResource.summary.criticalAlerts || 0)
-            }
-        };
-        const res = await this.baseApi.http.put<any>(`${this.resourceEndpoint}/${analyticsId}`, body);
-        return { ...res, data: this.mapBackendToAnalytics(res.data) };
-    }
-
-
-    async deleteAnalytics(analyticsId: number | string) {
-        // DELETE https://fakeapiplant.vercel.app/analytics/{analyticsId}
-        return this.baseApi.http.delete(`${this.resourceEndpoint}/${analyticsId}`);
-    }
-
-
-    // Métodos adicionales específicos para analytics
-    async getAnalyticsByDateRange(userId: string, startDate: string, endDate: string) {
-        // Validación defensiva
-        if (!userId || userId === 'undefined' || userId === 'null') {
-            throw new Error('Invalid userId provided to getAnalyticsByDateRange');
-        }
-        // GET con filtros de fecha - la fake API podría no soportar esto completamente
-        const res = await this.baseApi.http.get<any[]>(`${this.resourceEndpoint}?userId=${encodeURIComponent(userId)}`);
-        // Filtrar por fecha en el cliente como fallback
-        const filtered = (res.data || []).filter((item: any) => {
-            const itemStart = new Date(item.periodStart);
-            const itemEnd = new Date(item.periodEnd);
-            const filterStart = new Date(startDate);
-            const filterEnd = new Date(endDate);
-            return itemStart >= filterStart && itemEnd <= filterEnd;
-        });
-        const mapped = filtered.map(r => this.mapBackendToAnalytics(r));
-        return { ...res, data: mapped };
     }
 }
