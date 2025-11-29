@@ -1,6 +1,14 @@
 <script setup>
 
 import { ref, onMounted, computed } from 'vue'
+import { useToast } from 'primevue/usetoast'
+import { useConfirm } from 'primevue/useconfirm'
+import Toast from 'primevue/toast'
+import ConfirmDialog from 'primevue/confirmdialog'
+import CommunityWelcomeDialog from '../pages/CommunityWelcomeDialog.vue'
+import CreatePostDialog from '../pages/CreatePostDialog.vue'
+import { communityService } from '../services/Community.Service'
+import { useAuthenticationStore } from '../../iam/services/Authentication.Store'
 
 const experts = [
   { id: 1, initials: 'DP', name: 'Dr. Plant Expert', specialty: 'Horticulturist · Tropical plants' },
@@ -24,47 +32,117 @@ const guides = [
   }
 ]
 
-const BASE_URL = 'https://fakeapiplant.vercel.app'
+const BASE_URL = import.meta.env.VITE_PLANTCARE_API_URL
+
+// Función para obtener la URL base correcta para Community (sin /v1)
+const getCommunityBaseUrl = () => {
+  let url = BASE_URL
+  if (url.endsWith('/v1')) {
+    url = url.replace('/v1', '')
+  }
+  if (url.endsWith('/')) {
+    url = url.slice(0, -1)
+  }
+  return url
+}
 
 const posts = ref([])
 const profiles = ref([])
 const comments = ref([])
 const reactions = ref([])
 const loading = ref(true)
+const showCreateDialog = ref(false)
 
-onMounted(async () => {
+const toast = useToast()
+const confirm = useConfirm()
+const authStore = useAuthenticationStore()
+
+const loadData = async () => {
+  loading.value = true
   try {
-    const [postsRes, profilesRes, commentsRes, reactionsRes] = await Promise.all([
-      fetch(`${BASE_URL}/posts`),
-      fetch(`${BASE_URL}/profiles`),
-      fetch(`${BASE_URL}/comments`),
-      fetch(`${BASE_URL}/reactions`)
+    const communityUrl = getCommunityBaseUrl()
+    
+    // Obtener token limpio
+    let token = localStorage.getItem('token')
+    if (token && token.startsWith('"') && token.endsWith('"')) {
+      token = token.slice(1, -1)
+    }
+
+    const headers = {
+      'Accept': '*/*',
+      'Authorization': `Bearer ${token}`
+    }
+
+    // Helper para fetch seguro
+    const safeFetch = async (url) => {
+      try {
+        const res = await fetch(url, { headers })
+        if (!res.ok) throw new Error(`Status: ${res.status}`)
+        const text = await res.text()
+        return text ? JSON.parse(text) : [] // Manejar respuesta vacía
+      } catch (e) {
+        console.warn(`Falló fetch a ${url}:`, e)
+        return [] // Retornar array vacío en caso de error
+      }
+    }
+
+    // Cargar datos en paralelo pero de forma segura
+    const [postsData, profilesData, commentsData, reactionsData] = await Promise.all([
+      safeFetch(`${communityUrl}/community/posts`),
+      safeFetch(`${BASE_URL}/users/profile`),
+      safeFetch(`${communityUrl}/community/comments`),
+      safeFetch(`${communityUrl}/community/reactions`)
     ])
 
-    posts.value = await postsRes.json()
-    profiles.value = await profilesRes.json()
-    comments.value = await commentsRes.json()
-    reactions.value = await reactionsRes.json()
+    posts.value = Array.isArray(postsData) ? postsData : []
+    console.log('📦 Posts:', posts.value)
+
+    // Manejar perfiles (puede ser objeto único o array)
+    const profilesRaw = profilesData
+    profiles.value = Array.isArray(profilesRaw) ? profilesRaw : (profilesRaw ? [profilesRaw] : [])
+    console.log('👤 Perfiles:', profiles.value)
+    
+    comments.value = Array.isArray(commentsData) ? commentsData : []
+    reactions.value = Array.isArray(reactionsData) ? reactionsData : []
+
   } catch (err) {
-    console.error('Error fetching data:', err)
+    console.error('Error general fetching data:', err)
   } finally {
     loading.value = false
   }
+}
+
+onMounted(() => {
+  loadData()
 })
 
 /* 🔗 Enriquecer posts con perfil, comentarios y likes */
 const enrichedPosts = computed(() =>
     posts.value.map(post => {
-      const profile = profiles.value.find(p => String(p.id) === String(post.userId))
+      // El backend devuelve authorId, buscamos en perfiles por userId o id
+      let profile = profiles.value.find(p => {
+        const profileId = String(p.userId || p.id)
+        const authorId = String(post.authorId || post.userId)
+        return profileId === authorId
+      })
+
+      // Fallback: Si es el usuario actual y no encontramos perfil por ID exacto,
+      // pero tenemos un perfil cargado (probablemente el propio), usémoslo.
+      const isCurrentUser = String(post.authorId || post.userId) === String(authStore.uuid)
+      if (isCurrentUser && !profile && profiles.value.length > 0) {
+         // Asumimos que si solo hay un perfil o si es el usuario actual, el perfil cargado es el suyo
+         // (Comportamiento típico de GET /users/profile)
+         profile = profiles.value[0]
+      }
 
       // Comentarios por post
       const postComments = comments.value
           .filter(c => String(c.postId) === String(post.id))
           .map(comment => {
-            const commenterProfile = profiles.value.find(p => String(p.id) === String(comment.userId))
+            const commenterProfile = profiles.value.find(p => String(p.userId || p.id) === String(comment.userId))
             return {
               ...comment,
-              displayName: commenterProfile?.displayName || 'Unknown',
+              displayName: commenterProfile?.username || commenterProfile?.fullName || commenterProfile?.displayName || 'Unknown',
               avatarUrl: commenterProfile?.avatarUrl || null,
               location: commenterProfile?.location || null
             }
@@ -77,11 +155,13 @@ const enrichedPosts = computed(() =>
 
       return {
         ...post,
-        displayName: profile?.displayName || 'Unknown',
+        displayName: profile?.username || profile?.fullName || profile?.displayName || 'Usuario',
         avatarUrl: profile?.avatarUrl || null,
         location: profile?.location || null,
+        time: post.createdAt ? new Date(post.createdAt).toLocaleString() : 'Recently', // Formato local
         comments: postComments,
-        likes: postLikes.length
+        likes: postLikes.length,
+        isOwner: String(post.authorId || post.userId) === String(authStore.uuid) // Verificar si es el dueño
       }
     })
 )
@@ -97,14 +177,67 @@ function getInitials(name) {
       .join('')
       .toUpperCase()
 }
+
+/* 🎉 Handlers para el dialog de bienvenida */
+const handleWelcomeAccepted = () => {
+  console.log('Usuario aceptó unirse a la comunidad')
+  loadData() // Recargar datos por si acaso
+}
+
+const handleWelcomeRejected = () => {
+  console.log('Usuario rechazó unirse a la comunidad')
+}
+
+/* 📝 Handler para creación de post */
+const handlePostCreated = () => {
+  loadData() // Recargar el feed para mostrar el nuevo post
+}
+
+/* 🗑️ Handler para eliminar post */
+const confirmDeletePost = (post) => {
+  confirm.require({
+    message: '¿Estás seguro de que quieres eliminar esta publicación?',
+    header: 'Confirmar Eliminación',
+    icon: 'pi pi-exclamation-triangle',
+    acceptClass: 'p-button-danger',
+    accept: async () => {
+      try {
+        await communityService.deletePost(post.id, authStore.uuid)
+        toast.add({ severity: 'success', summary: 'Eliminado', detail: 'Publicación eliminada correctamente', life: 3000 })
+        loadData() // Recargar lista
+      } catch (error) {
+        console.error('Error deleting post:', error)
+        toast.add({ severity: 'error', summary: 'Error', detail: 'No se pudo eliminar la publicación', life: 3000 })
+      }
+    },
+    reject: () => {
+      // Cancelado
+    }
+  })
+}
 </script>
 
 <template>
   <div class="community">
+    <Toast />
+    <ConfirmDialog />
+
+    <!-- Dialog de Bienvenida -->
+    <CommunityWelcomeDialog 
+      @accepted="handleWelcomeAccepted"
+      @rejected="handleWelcomeRejected"
+    />
+
+    <!-- Dialog de Crear Post -->
+    <CreatePostDialog
+      v-model:visible="showCreateDialog"
+      @created="handlePostCreated"
+    />
+
     <!-- Header + CTA -->
     <div class="header">
       <h1>Community</h1>
-      <button class="btn-create">
+      <button class="btn-create" @click="showCreateDialog = true">
         <img
             src="https://fonts.gstatic.com/s/i/materialiconsoutlined/photo_camera/v1/24px.svg"
             alt="camera icon"
@@ -144,12 +277,26 @@ function getInitials(name) {
               <div class="timeplace">
                 {{ post.time || 'Recently' }}
                 <template v-if="post.location"> · {{ post.location }}</template>
+                <template v-if="post.species"> · 🌿 {{ post.species }}</template>
+                <template v-if="post.tag"> · <span class="meta-tag">#{{ post.tag }}</span></template>
               </div>
             </div>
+
+            <!-- Botón de Eliminar (Solo visible para el dueño) -->
+            <button 
+              v-if="post.isOwner" 
+              class="btn-delete" 
+              @click="confirmDeletePost(post)"
+              title="Eliminar publicación"
+            >
+              <i class="pi pi-trash" style="font-size: 1rem;"></i>
+            </button>
           </div>
 
           <!-- Contenido -->
+          <h3 class="post-text">{{ post.title }}</h3>
           <p class="post-text">{{ post.content }}</p>
+          
 
           <img
               v-if="post.image"
@@ -584,6 +731,29 @@ function getInitials(name) {
   font-size: 13px;
   color: #4b5563;
   margin: 4px 0 6px 40px;
+}
+
+.btn-delete {
+  margin-left: auto; /* Empuja el botón a la derecha */
+  background: transparent;
+  border: none;
+  color: #ef4444; /* Rojo */
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  transition: background-color 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-delete:hover {
+  background-color: #fee2e2;
+}
+
+.meta-tag {
+  color: var(--primary);
+  font-weight: 500;
 }
 
 </style>
