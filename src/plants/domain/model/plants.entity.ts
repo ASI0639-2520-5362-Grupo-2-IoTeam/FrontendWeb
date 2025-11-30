@@ -1,13 +1,13 @@
 
 export interface Metric {
-  id: number;
+  id: number | null;
   plantId: number;
   deviceId: string;
-  temperature: number;
-  humidity: number;
-  light: number;
-  soilHumidity: number;
-  createdAt: string;
+  airTemperatureC: number;
+  airHumidityPct: number;
+  lightIntensityLux: number;
+  soilMoisturePct: number;
+  timestamp: string;
 }
 
 export interface WateringLog {

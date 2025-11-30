@@ -1,3 +1,4 @@
+
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
 import { useRouter } from 'vue-router';
@@ -85,8 +86,8 @@ function formatDate(dateStr: string): string {
 
 const getLatestHumidity = (plant: Plant): number | string => {
   if (plant.metrics && plant.metrics.length > 0) {
-    const latestMetric = [...plant.metrics].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
-    return latestMetric?.humidity ?? 'N/A';
+    const latestMetric = [...plant.metrics].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
+    return latestMetric?.airHumidityPct ?? 'N/A';
   }
   return 'N/A';
 }
