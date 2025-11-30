@@ -1,3 +1,4 @@
+
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
@@ -37,7 +38,8 @@ onMounted(async () => {
 const latestMetric = computed((): Metric | null => {
   const metrics = plant.value?.metrics ?? [];
   if (metrics.length === 0) return null;
-  const sorted = [...metrics].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  // Sort by the new 'timestamp' field in descending order
+  const sorted = [...metrics].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
   return sorted[0] ?? null;
 });
 
@@ -131,7 +133,7 @@ function formatDate(dateStr: string | null): string {
                 <Avatar icon="pi pi-sun" size="large" shape="circle" class="metric-icon temp" />
                 <div class="metric-info">
                   <span class="metric-label">Temperature</span>
-                  <span class="metric-value">{{ latestMetric?.temperature ?? 'N/A' }}°C</span>
+                  <span class="metric-value">{{ latestMetric?.airTemperatureC ?? 'N/A' }}°C</span>
                 </div>
               </div>
             </template>
@@ -142,7 +144,7 @@ function formatDate(dateStr: string | null): string {
                 <Avatar icon="pi pi-cloud" size="large" shape="circle" class="metric-icon humidity" />
                 <div class="metric-info">
                   <span class="metric-label">Air Humidity</span>
-                  <span class="metric-value">{{ latestMetric?.humidity ?? 'N/A' }}%</span>
+                  <span class="metric-value">{{ latestMetric?.airHumidityPct ?? 'N/A' }}%</span>
                 </div>
               </div>
             </template>
@@ -153,7 +155,7 @@ function formatDate(dateStr: string | null): string {
                 <Avatar icon="pi pi-lightbulb" size="large" shape="circle" class="metric-icon light" />
                 <div class="metric-info">
                   <span class="metric-label">Light</span>
-                  <span class="metric-value">{{ latestMetric?.light ?? 'N/A' }} lm</span>
+                  <span class="metric-value">{{ latestMetric?.lightIntensityLux ?? 'N/A' }} lm</span>
                 </div>
               </div>
             </template>
@@ -161,7 +163,6 @@ function formatDate(dateStr: string | null): string {
           <Card class="metric-card">
             <template #content>
               <div class="metric-content">
-                <!-- SVG simple de gota para Soil Humidity (asegura render incluso si primeicons no contiene el icono) -->
                 <div class="metric-icon soil" role="img" aria-label="Soil humidity">
                   <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
                     <path fill="currentColor" d="M12 2s-7 7-7 12a7 7 0 0014 0c0-5-7-12-7-12z" />
@@ -169,7 +170,7 @@ function formatDate(dateStr: string | null): string {
                 </div>
                 <div class="metric-info">
                   <span class="metric-label">Soil Humidity</span>
-                  <span class="metric-value">{{ latestMetric?.soilHumidity ?? 'N/A' }}%</span>
+                  <span class="metric-value">{{ latestMetric?.soilMoisturePct ?? 'N/A' }}%</span>
                 </div>
               </div>
             </template>
