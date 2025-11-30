@@ -126,7 +126,7 @@ export class CommunityService {
             params.append('species', postData.species);
             params.append('tag', postData.tag);
 
-            const url = this.getCommunityUrl(`/community/posts?${params.toString()}`);
+            const url = this.getCommunityUrl(`/v1/community/posts?${params.toString()}`);
             
             // Enviar POST con URL completa y cuerpo vacío
             const response = await http.post(
@@ -156,7 +156,7 @@ export class CommunityService {
         try {
             console.debug(`[CommunityService] Eliminando post ${postId} del usuario ${userId}`);
             
-            const url = this.getCommunityUrl(`/community/posts/${postId}?userId=${userId}`);
+            const url = this.getCommunityUrl(`/v1/community/posts/${postId}?userId=${userId}`);
             
             const response = await http.delete(
                 url,
@@ -172,6 +172,99 @@ export class CommunityService {
             return response;
         } catch (error) {
             console.error('[CommunityService] Error eliminando post:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Obtiene todos los comentarios.
+     * GET /community/comments
+     */
+    async getComments(): Promise<AxiosResponse<any[]>> {
+        try {
+            const url = this.getCommunityUrl('/v1/community/comments');
+            return await http.get(url, { headers: { 'Accept': '*/*', ...this.getAuthHeader() } });
+        } catch (error) {
+            console.error('[CommunityService] Error obteniendo comentarios:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Obtiene la cantidad de reacciones (likes) de una publicación.
+     * GET /community/reactions?postId=...
+     */
+    async getReactions(postId: number): Promise<AxiosResponse<number>> {
+        try {
+            const url = this.getCommunityUrl(`/v1/community/reactions?postId=${postId}`);
+            return await http.get(url, { headers: { 'Accept': '*/*', ...this.getAuthHeader() } });
+        } catch (error) {
+            console.error('[CommunityService] Error obteniendo reacciones:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Reaccionar a una publicación (Toggle Like).
+     * POST /community/reactions?userId=...&postId=...
+     */
+    async createReaction(userId: string, postId: number): Promise<AxiosResponse<boolean>> {
+        try {
+            const params = new URLSearchParams();
+            params.append('userId', userId);
+            params.append('postId', postId.toString());
+            // El backend hace toggle, no necesita 'type'
+
+            const url = this.getCommunityUrl(`/v1/community/reactions?${params.toString()}`);
+            
+            const response = await http.post(
+                url,
+                {}, 
+                { headers: { 'Accept': '*/*', ...this.getAuthHeader() } }
+            );
+            return response;
+        } catch (error) {
+            console.error('[CommunityService] Error creando reacción:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Crea un comentario en un post.
+     * POST /community/comments
+     */
+    async createComment(userId: string, postId: number, content: string): Promise<AxiosResponse<any>> {
+        try {
+            const params = new URLSearchParams();
+            params.append('userId', userId);
+            params.append('postId', postId.toString());
+            params.append('text', content); // Correcto: 'text'
+
+            const url = this.getCommunityUrl(`/v1/community/comments?${params.toString()}`);
+            
+            const response = await http.post(
+                url,
+                {}, 
+                { headers: { 'Accept': '*/*', ...this.getAuthHeader() } }
+            );
+            return response;
+        } catch (error) {
+            console.error('[CommunityService] Error creando comentario:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Elimina un comentario.
+     * DELETE /community/comments/{commentId}?userId=...
+     */
+    async deleteComment(commentId: string, userId: string): Promise<AxiosResponse<any>> {
+        try {
+            // Enviamos commentId tanto en la ruta como en los query params para asegurar compatibilidad
+            const url = this.getCommunityUrl(`/v1/community/comments/${commentId}?userId=${userId}&commentId=${commentId}`);
+            return await http.delete(url, { headers: { 'Accept': '*/*', ...this.getAuthHeader() } });
+        } catch (error) {
+            console.error('[CommunityService] Error eliminando comentario:', error);
             throw error;
         }
     }

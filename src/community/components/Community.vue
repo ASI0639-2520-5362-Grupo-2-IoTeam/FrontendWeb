@@ -48,6 +48,7 @@ const getCommunityBaseUrl = () => {
 
 const posts = ref([])
 const profiles = ref([])
+const members = ref([]) // Nueva referencia para miembros
 const comments = ref([])
 const reactions = ref([])
 const loading = ref(true)
@@ -87,23 +88,33 @@ const loadData = async () => {
     }
 
     // Cargar datos en paralelo pero de forma segura
-    const [postsData, profilesData, commentsData, reactionsData] = await Promise.all([
-      safeFetch(`${communityUrl}/community/posts`),
-      safeFetch(`${BASE_URL}/users/profile`),
-      safeFetch(`${communityUrl}/community/comments`),
-      safeFetch(`${communityUrl}/community/reactions`)
+    // Cargar datos principales
+    const [postsData, profilesData, membersData, commentsData] = await Promise.all([
+      safeFetch(`${communityUrl}/v1/community/posts`),
+      safeFetch(`${BASE_URL}/v1/users/profile`),
+      safeFetch(`${communityUrl}/v1/community/members`),
+      safeFetch(`${communityUrl}/v1/community/comments`)
     ])
 
     posts.value = Array.isArray(postsData) ? postsData : []
-    console.log('📦 Posts:', posts.value)
+    
+    // Cargar likes para cada post
+    const likesMap = {}
+    await Promise.all(posts.value.map(async (post) => {
+      try {
+        const res = await communityService.getReactions(post.id)
+        likesMap[post.id] = res.data // Asumimos que devuelve el número
+      } catch (e) {
+        console.warn(`Error cargando likes para post ${post.id}`, e)
+        likesMap[post.id] = 0
+      }
+    }))
+    reactions.value = likesMap // Guardamos el mapa de likes { postId: count }
 
-    // Manejar perfiles (puede ser objeto único o array)
     const profilesRaw = profilesData
     profiles.value = Array.isArray(profilesRaw) ? profilesRaw : (profilesRaw ? [profilesRaw] : [])
-    console.log('👤 Perfiles:', profiles.value)
-    
+    members.value = Array.isArray(membersData) ? membersData : []
     comments.value = Array.isArray(commentsData) ? commentsData : []
-    reactions.value = Array.isArray(reactionsData) ? reactionsData : []
 
   } catch (err) {
     console.error('Error general fetching data:', err)
@@ -119,49 +130,55 @@ onMounted(() => {
 /* 🔗 Enriquecer posts con perfil, comentarios y likes */
 const enrichedPosts = computed(() =>
     posts.value.map(post => {
-      // El backend devuelve authorId, buscamos en perfiles por userId o id
-      let profile = profiles.value.find(p => {
-        const profileId = String(p.userId || p.id)
-        const authorId = String(post.authorId || post.userId)
-        return profileId === authorId
-      })
+      const authorId = String(post.authorId || post.userId)
 
-      // Fallback: Si es el usuario actual y no encontramos perfil por ID exacto,
-      // pero tenemos un perfil cargado (probablemente el propio), usémoslo.
-      const isCurrentUser = String(post.authorId || post.userId) === String(authStore.uuid)
-      if (isCurrentUser && !profile && profiles.value.length > 0) {
-         // Asumimos que si solo hay un perfil o si es el usuario actual, el perfil cargado es el suyo
-         // (Comportamiento típico de GET /users/profile)
-         profile = profiles.value[0]
-      }
+      // 1. Buscar en miembros (prioridad para username)
+      const member = members.value.find(m => String(m.userId) === authorId)
+      
+      // 2. Buscar en perfiles (fallback)
+      const profile = profiles.value.find(p => String(p.userId || p.id) === authorId)
+
+      // Determinar nombre a mostrar
+      const displayName = member?.username || profile?.username || profile?.fullName || 'Usuario'
 
       // Comentarios por post
       const postComments = comments.value
           .filter(c => String(c.postId) === String(post.id))
           .map(comment => {
-            const commenterProfile = profiles.value.find(p => String(p.userId || p.id) === String(comment.userId))
+            let commentDisplayName = comment.username || 'Unknown'
+            const commentUserId = String(comment.userId || comment.authorId)
+            
+            if (!comment.username) {
+                const commentMember = members.value.find(m => String(m.userId) === commentUserId)
+                const commentProfile = profiles.value.find(p => String(p.userId || p.id) === commentUserId)
+                commentDisplayName = commentMember?.username || commentProfile?.username || commentProfile?.fullName || 'Unknown'
+            }
+            
             return {
               ...comment,
-              displayName: commenterProfile?.username || commenterProfile?.fullName || commenterProfile?.displayName || 'Unknown',
-              avatarUrl: commenterProfile?.avatarUrl || null,
-              location: commenterProfile?.location || null
+              displayName: commentDisplayName,
+              avatarUrl: null,
+              isOwner: commentUserId === String(authStore.uuid)
             }
           })
 
-      // Reacciones (likes) por post
-      const postLikes = reactions.value.filter(
-          r => r.targetType === 'post' && String(r.targetId) === String(post.id) && r.type === 'like'
-      )
+      // Reacciones (likes)
+      const likesCount = reactions.value[post.id] || 0
+      
+      // NOTA: El endpoint actual solo devuelve cantidad, no si el usuario dio like.
+      // Por ahora hasLiked será false al recargar, pero se actualizará al interactuar.
+      const hasLiked = false 
 
       return {
         ...post,
-        displayName: profile?.username || profile?.fullName || profile?.displayName || 'Usuario',
+        displayName: displayName,
         avatarUrl: profile?.avatarUrl || null,
         location: profile?.location || null,
-        time: post.createdAt ? new Date(post.createdAt).toLocaleString() : 'Recently', // Formato local
+        time: post.createdAt ? new Date(post.createdAt).toLocaleString() : 'Recently',
         comments: postComments,
-        likes: postLikes.length,
-        isOwner: String(post.authorId || post.userId) === String(authStore.uuid) // Verificar si es el dueño
+        likes: likesCount,
+        hasLiked: hasLiked,
+        isOwner: authorId === String(authStore.uuid)
       }
     })
 )
@@ -178,10 +195,100 @@ function getInitials(name) {
       .toUpperCase()
 }
 
+const commentInputs = ref({}) // Estado para los inputs de comentarios por post
+
+/* ❤️ Handler para dar Like */
+const handleLike = async (post) => {
+  if (!authStore.uuid) {
+    toast.add({ severity: 'warn', summary: 'Acceso', detail: 'Debes iniciar sesión para dar like', life: 3000 })
+    return
+  }
+  
+  try {
+    // Toggle like
+    await communityService.createReaction(authStore.uuid, post.id)
+    
+    // Recargar solo los likes de este post para actualizar el contador
+    const res = await communityService.getReactions(post.id)
+    reactions.value = { ...reactions.value, [post.id]: res.data }
+    
+  } catch (error) {
+    console.error('Error dando like:', error)
+    toast.add({ severity: 'error', summary: 'Error', detail: 'No se pudo registrar tu reacción', life: 3000 })
+  }
+}
+
+/* 💬 Handler para publicar comentario */
+const handlePostComment = async (post) => {
+  const content = commentInputs.value[post.id]
+  
+  if (!content || !content.trim()) return
+
+  if (!authStore.uuid) {
+    toast.add({ severity: 'warn', summary: 'Acceso', detail: 'Debes iniciar sesión para comentar', life: 3000 })
+    return
+  }
+
+  try {
+    const response = await communityService.createComment(authStore.uuid, post.id, content)
+    
+    // Actualización optimista/local: Añadir el nuevo comentario a la lista
+    // Asumimos que el backend devuelve el comentario creado
+    if (response.data) {
+      comments.value.push(response.data)
+    } else {
+      // Si no devuelve data, recargamos todo por seguridad
+      loadData()
+    }
+    
+    // Limpiar input
+    commentInputs.value[post.id] = ''
+    toast.add({ severity: 'success', summary: 'Comentario', detail: 'Comentario publicado', life: 2000 })
+    
+  } catch (error) {
+    console.error('Error publicando comentario:', error)
+    toast.add({ severity: 'error', summary: 'Error', detail: 'No se pudo publicar el comentario', life: 3000 })
+  }
+}
+
+/* 🗑️ Handler para eliminar comentario */
+const confirmDeleteComment = (comment) => {
+  console.log('🗑️ Intentando eliminar comentario:', comment)
+  
+  // Intentar obtener el ID de varias formas posibles por seguridad
+  const commentId = comment.id || comment.commentId || comment._id
+  
+  if (!commentId) {
+    console.error('❌ Error: El comentario no tiene ID válido', comment)
+    toast.add({ severity: 'error', summary: 'Error', detail: 'No se puede eliminar: ID no encontrado', life: 3000 })
+    return
+  }
+
+  confirm.require({
+    message: '¿Estás seguro de que quieres eliminar este comentario?',
+    header: 'Confirmar Eliminación',
+    icon: 'pi pi-exclamation-triangle',
+    acceptClass: 'p-button-danger',
+    accept: async () => {
+      try {
+        await communityService.deleteComment(String(commentId), authStore.uuid)
+        
+        // Actualización optimista: Eliminar de la lista local
+        comments.value = comments.value.filter(c => (c.id || c.commentId || c._id) !== commentId)
+        
+        toast.add({ severity: 'success', summary: 'Eliminado', detail: 'Comentario eliminado', life: 2000 })
+      } catch (error) {
+        console.error('Error eliminando comentario:', error)
+        toast.add({ severity: 'error', summary: 'Error', detail: 'No se pudo eliminar el comentario', life: 3000 })
+      }
+    }
+  })
+}
+
 /* 🎉 Handlers para el dialog de bienvenida */
 const handleWelcomeAccepted = () => {
   console.log('Usuario aceptó unirse a la comunidad')
-  loadData() // Recargar datos por si acaso
+  loadData() 
 }
 
 const handleWelcomeRejected = () => {
@@ -307,8 +414,13 @@ const confirmDeletePost = (post) => {
 
           <!-- ⚡ Reacciones (likes y comentarios) -->
           <div class="post-actions">
-            <button class="icon-btn" title="Like">
-              <div>💚</div>
+            <button 
+              class="icon-btn" 
+              :class="{ 'active': post.hasLiked }"
+              title="Like"
+              @click="handleLike(post)"
+            >
+              <div>{{ post.hasLiked ? '❤️' : '🤍' }}</div>
               <span>{{ post.likes }}</span>
             </button>
 
@@ -319,31 +431,61 @@ const confirmDeletePost = (post) => {
           </div>
 
           <!-- 💬 Comentarios -->
-          <div v-if="post.comments.length" class="comments">
-            <h4>Comments</h4>
-            <div
-                v-for="comment in post.comments"
-                :key="comment.id"
-                class="comment"
-            >
-              <div class="comment-header">
-                <img
-                    v-if="comment.avatarUrl"
-                    :src="comment.avatarUrl"
-                    :alt="comment.displayName"
-                    class="comment-avatar"
-                />
-                <div v-else class="comment-avatar-alt">
-                  {{ getInitials(comment.displayName) }}
+          <div class="comments-section">
+            <div v-if="post.comments.length" class="comments-list">
+              <h4>Comments</h4>
+              <div
+                  v-for="comment in post.comments"
+                  :key="comment.id"
+                  class="comment"
+              >
+                <div class="comment-header">
+                  <img
+                      v-if="comment.avatarUrl"
+                      :src="comment.avatarUrl"
+                      :alt="comment.displayName"
+                      class="comment-avatar"
+                  />
+                  <div v-else class="comment-avatar-alt">
+                    {{ getInitials(comment.displayName) }}
+                  </div>
+                  <div>
+                    <p class="comment-author">{{ comment.displayName }}</p>
+                    <p class="comment-date">
+                      {{ new Date(comment.createdAt).toLocaleString() }}
+                    </p>
+                  </div>
+                  
+                  <!-- Botón eliminar comentario -->
+                  <button 
+                    v-if="comment.isOwner"
+                    class="btn-delete-comment"
+                    @click="confirmDeleteComment(comment)"
+                    title="Eliminar comentario"
+                  >
+                    <i class="pi pi-trash" style="font-size: 0.8rem;"></i>
+                  </button>
                 </div>
-                <div>
-                  <p class="comment-author">{{ comment.displayName }}</p>
-                  <p class="comment-date">
-                    {{ new Date(comment.createdAt).toLocaleString() }}
-                  </p>
-                </div>
+                <p class="comment-body">{{ comment.content }}</p>
               </div>
-              <p class="comment-body">{{ comment.content }}</p>
+            </div>
+
+            <!-- Input para nuevo comentario -->
+            <div class="comment-input-wrapper">
+              <input 
+                type="text" 
+                v-model="commentInputs[post.id]" 
+                placeholder="Escribe un comentario..." 
+                class="comment-input"
+                @keyup.enter="handlePostComment(post)"
+              />
+              <button 
+                class="btn-send" 
+                @click="handlePostComment(post)"
+                :disabled="!commentInputs[post.id]"
+              >
+                Enviar
+              </button>
             </div>
           </div>
         </article>
@@ -679,23 +821,72 @@ const confirmDeletePost = (post) => {
   font-size: 14px;
   color: #374151;
 }
-.comments {
+
+.comments-section {
   margin-top: 12px;
   background: #f9fafb;
   border-radius: 8px;
   padding: 10px 14px;
 }
-.comments h4 {
+
+.comments-list h4 {
   font-size: 14px;
   font-weight: 600;
   margin-bottom: 6px;
   color: #374151;
 }
+
 .comment {
   border-top: 1px solid #e5e7eb;
   padding-top: 6px;
   margin-top: 6px;
 }
+
+.comment-input-wrapper {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.comment-input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 20px;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s;
+  background-color: #ffffff !important; /* Forzar blanco */
+  color: #1f2937 !important; /* Forzar texto oscuro */
+}
+
+.comment-input:focus {
+  border-color: #56b35f;
+}
+
+.btn-send {
+  background: #56b35f;
+  color: white;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-send:hover {
+  background: #469b4e;
+}
+
+.btn-send:disabled {
+  background: #d1d5db;
+  cursor: not-allowed;
+}
+
 .comment-header {
   display: flex;
   align-items: center;
@@ -748,6 +939,24 @@ const confirmDeletePost = (post) => {
 }
 
 .btn-delete:hover {
+  background-color: #fee2e2;
+}
+
+.btn-delete-comment {
+  margin-left: auto;
+  background: transparent;
+  border: none;
+  color: #ef4444;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 50%;
+  transition: background-color 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-delete-comment:hover {
   background-color: #fee2e2;
 }
 
