@@ -70,7 +70,7 @@ const router = createRouter({
         {
             path: '/community',
             name: 'Community',
-            component: () => import('./community/components/Community.vue'),
+            component: () => import('./community/presentation/views/Community.vue'),
         },
         {
             path: '/subscription',
