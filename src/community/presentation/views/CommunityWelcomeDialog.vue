@@ -1,8 +1,8 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { useAuthenticationStore } from '../../iam/services/Authentication.Store'
-import { CommunityService } from '../services/Community.Service'
+import { useAuthenticationStore } from '../../../iam/services/Authentication.Store'
+import { CommunityService } from '../../infrastructure/Community.Service'
 import { useToast } from 'primevue/usetoast'
 
 const router = useRouter()

@@ -3,8 +3,8 @@ import { ref, watch } from 'vue'
 import { useToast } from 'primevue/usetoast'
 import InputText from 'primevue/inputtext'
 import Textarea from 'primevue/textarea'
-import { communityService } from '../services/Community.Service'
-import { useAuthenticationStore } from '../../iam/services/Authentication.Store'
+import { communityService } from '../../infrastructure/Community.Service'
+import { useAuthenticationStore } from '../../../iam/services/Authentication.Store'
 
 const props = defineProps({
   visible: {

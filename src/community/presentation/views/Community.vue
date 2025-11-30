@@ -5,10 +5,10 @@ import { useToast } from 'primevue/usetoast'
 import { useConfirm } from 'primevue/useconfirm'
 import Toast from 'primevue/toast'
 import ConfirmDialog from 'primevue/confirmdialog'
-import CommunityWelcomeDialog from '../pages/CommunityWelcomeDialog.vue'
-import CreatePostDialog from '../pages/CreatePostDialog.vue'
-import { communityService } from '../services/Community.Service'
-import { useAuthenticationStore } from '../../iam/services/Authentication.Store'
+import CommunityWelcomeDialog from './CommunityWelcomeDialog.vue'
+import CreatePostDialog from './CreatePostDialog.vue'
+import { communityService } from '../../infrastructure/Community.Service'
+import { useAuthenticationStore } from '../../../iam/services/Authentication.Store'
 
 const experts = [
   { id: 1, initials: 'DP', name: 'Dr. Plant Expert', specialty: 'Horticulturist · Tropical plants' },
