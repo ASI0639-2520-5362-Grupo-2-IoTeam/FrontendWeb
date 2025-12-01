@@ -82,14 +82,12 @@ export class PlantsService {
 
   async waterPlant(plantId: number | string, wateredAt?: string) {
     const body = wateredAt ? { wateredAt } : {};
-    const res = await this.baseApi.http.post<any>(
-      `${this.resourceEndpoint}/${plantId}/watering`,
-      body,
-      this.getAuthHeaders()
+    await this.baseApi.http.post<any>(
+        `${this.resourceEndpoint}/${plantId}/watering`,
+        body,
+        this.getAuthHeaders()
     );
-    if (res.status === 204) {
-      return this.getPlantById(plantId);
-    }
-    return { ...res, data: PlantAssembler.toDomain(res.data) };
+    // After watering, always re-fetch the plant data to get the updated state including metrics.
+    return this.getPlantById(plantId);
   }
 }

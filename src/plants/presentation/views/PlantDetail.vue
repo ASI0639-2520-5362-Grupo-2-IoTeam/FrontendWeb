@@ -21,6 +21,7 @@ const toast = useToast();
 
 const plant = ref<PlantEntity | null>(null);
 const isLoading = ref(true);
+const isWatering = ref(false);
 const plantId = Number(route.params.id);
 
 onMounted(async () => {
@@ -38,13 +39,26 @@ onMounted(async () => {
 const latestMetric = computed((): Metric | null => {
   const metrics = plant.value?.metrics ?? [];
   if (metrics.length === 0) return null;
-  // Sort by the new 'timestamp' field in descending order
   const sorted = [...metrics].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
   return sorted[0] ?? null;
 });
 
 const goBack = () => {
   router.push('/plants');
+};
+
+const waterPlant = async () => {
+  if (!plant.value) return;
+  isWatering.value = true;
+  try {
+    const response = await plantsService.waterPlant(plant.value.id);
+    plant.value = response.data;
+    toast.add({ severity: 'success', summary: 'Success', detail: 'Plant watered successfully!', life: 3000 });
+  } catch (err) {
+    toast.add({ severity: 'error', summary: 'Error', detail: 'Failed to water the plant.', life: 3000 });
+  } finally {
+    isWatering.value = false;
+  }
 };
 
 const handleDelete = () => {
@@ -199,14 +213,32 @@ function formatDate(dateStr: string | null): string {
           </template>
         </Card>
 
+        <div class="watering-action-container">
+          <Button
+              class="water-button"
+              @click="waterPlant"
+              :disabled="isWatering"
+              aria-label="Water Plant"
+          >
+            <span v-if="!isWatering" class="water-drop-icon">
+              <svg viewBox="0 0 100 125">
+                <path class="drop-outline" d="M50,5.5c-19.8,0-35.8,16.1-35.8,35.8c0,17.5,12.8,32.3,29.8,35.3V95h12V76.6c17-3,29.8-17.8,29.8-35.3 C85.8,21.6,69.8,5.5,50,5.5z"/>
+                <path class="drop-fill" d="M50,5.5c-19.8,0-35.8,16.1-35.8,35.8c0,17.5,12.8,32.3,29.8,35.3V95h12V76.6c17-3,29.8-17.8,29.8-35.3 C85.8,21.6,69.8,5.5,50,5.5z"/>
+              </svg>
+            </span>
+            <ProgressSpinner v-if="isWatering" style="width: 24px; height: 24px" strokeWidth="6" />
+            <span class="p-button-label">{{ isWatering ? 'Watering...' : 'Water Plant' }}</span>
+          </Button>
+        </div>
+
         <div class="actions-footer">
-            <Button
-                label="Delete Plant"
-                icon="pi pi-trash"
-                severity="danger"
-                outlined
-                @click="handleDelete"
-            />
+          <Button
+              label="Delete Plant"
+              icon="pi pi-trash"
+              severity="danger"
+              outlined
+              @click="handleDelete"
+          />
         </div>
       </div>
     </div>
@@ -321,9 +353,8 @@ function formatDate(dateStr: string | null): string {
   gap: 1.5rem;
 }
 
-/* Add sizing/centering for metric icons (ensures SVG fits) */
 .metric-icon {
-  color: #fff; /* Keep icon color white for contrast with custom backgrounds */
+  color: #fff;
   width: 56px;
   height: 56px;
   border-radius: 50%;
@@ -385,6 +416,57 @@ function formatDate(dateStr: string | null): string {
   color: var(--text-primary);
 }
 
+.watering-action-container {
+  display: flex;
+  justify-content: center;
+  margin-top: 1rem;
+}
+
+.water-button {
+  background-color: transparent;
+  border: 2px solid #3b82f6; /* A neutral blue */
+  color: #3b82f6;
+  border-radius: 50px;
+  padding: 0.75rem 1.5rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.water-button:hover {
+  background-color: #3b82f6;
+  color: white;
+}
+
+.water-drop-icon {
+  width: 24px;
+  height: 24px;
+}
+
+.water-drop-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.drop-outline {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 5;
+}
+
+.drop-fill {
+  fill: currentColor;
+  transform-origin: 50% 100%;
+  transform: scaleY(0);
+  transition: transform 0.4s cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+.water-button:hover .drop-fill {
+  transform: scaleY(1);
+}
+
 .actions-footer {
   margin-top: auto;
   padding-top: 2rem;
@@ -405,7 +487,6 @@ function formatDate(dateStr: string | null): string {
   }
 }
 
-/* Dark mode overrides: cambia fondos y colores cuando el sistema está en modo oscuro */
 @media (prefers-color-scheme: dark) {
   .plant-detail-view {
     background-color: var(--bg-primary);
@@ -419,7 +500,6 @@ function formatDate(dateStr: string | null): string {
     box-shadow: var(--shadow-md);
   }
 
-  /* Forzar sobre los elementos internos de PrimeVue (p-card) en caso de que el tema los pinte en claro */
   :deep(.p-card) {
     background-color: var(--bg-card) !important;
     border-color: var(--border-color) !important;
@@ -427,13 +507,11 @@ function formatDate(dateStr: string | null): string {
     box-shadow: var(--shadow-md) !important;
   }
 
-  /* Contenido y títulos internos de la card */
   :deep(.p-card .p-card-title), :deep(.p-card .p-card-content) {
     color: inherit !important;
   }
 
    .plant-image-container {
-     /* opcional: añadir un fondo oscuro por si la imagen no carga */
      background-color: var(--bg-primary);
    }
 
@@ -446,7 +524,17 @@ function formatDate(dateStr: string | null): string {
    }
 
    .watering-item i {
-     color: var(--status-info); /* color primario claro para íconos */
+     color: var(--status-info);
+   }
+
+   .water-button {
+     border-color: #60a5fa; /* Lighter blue for dark mode */
+     color: #60a5fa;
+   }
+
+   .water-button:hover {
+     background-color: #60a5fa;
+     color: #111827; /* Dark text on hover */
    }
 
    .not-found {
@@ -454,7 +542,6 @@ function formatDate(dateStr: string | null): string {
      color: var(--text-primary);
    }
 
-   /* Ajustes menores para los iconos circulares para mejor contraste en oscuro */
    .metric-icon.temp { background-color: #b25b00; }
    .metric-icon.humidity { background-color: #1e6fb8; }
    .metric-icon.light { background-color: #b38600; }
