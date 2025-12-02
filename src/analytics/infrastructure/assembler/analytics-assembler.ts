@@ -13,10 +13,10 @@ export class AnalyticsAssembler {
         return {
             id: Number(raw.id || 0),
             device_id: String(raw.device_id || ''),
-            temperature: Number(raw.temperature || 0),
-            humidity: Number(raw.humidity || 0),
-            light: Number(raw.light || 0),
-            soil_humidity: Number(raw.soil_humidity || 0),
+            temperature: Number(raw.air_temperature_celsius || 0),
+            humidity: Number(raw.air_humidity_percent || 0),
+            light: Number(raw.luminosity_lux || 0),
+            soil_humidity: Number(raw.soil_moisture_percent || 0),
             created_at: raw.created_at || new Date().toISOString()
         };
     }
@@ -58,13 +58,13 @@ export class AnalyticsAssembler {
      */
     static fromPlantMetrics(plantId: number, metrics: Metric[], deviceId?: string): Analytics {
         const sensorData: SensorData[] = metrics.map(m => ({
-            id: m.id,
+            id: m.id ?? 0,
             device_id: m.deviceId,
-            temperature: m.temperature,
-            humidity: m.humidity,
-            light: m.light,
-            soil_humidity: m.soilHumidity,
-            created_at: m.createdAt
+            temperature: m.airTemperatureC,
+            humidity: m.airHumidityPct,
+            light: m.lightIntensityLux,
+            soil_humidity: m.soilMoisturePct,
+            created_at: m.timestamp
         }));
 
         const dates = sensorData.map(d => new Date(d.created_at).getTime());
@@ -130,12 +130,11 @@ export class AnalyticsAssembler {
     static toBackend(sensorData: Omit<SensorData, 'id'>[]): any {
         return sensorData.map(data => ({
             device_id: data.device_id,
-            temperature: Number(data.temperature),
-            humidity: Number(data.humidity),
-            light: Number(data.light),
-            soil_humidity: Number(data.soil_humidity),
+            air_temperature_celsius: Number(data.temperature),
+            air_humidity_percent: Number(data.humidity),
+            luminosity_lux: Number(data.light),
+            soil_moisture_percent: Number(data.soil_humidity),
             created_at: data.created_at
         }));
     }
 }
-
