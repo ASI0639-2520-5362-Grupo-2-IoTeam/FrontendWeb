@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
-import type { UserProfile, UserStats, UserAchievement, AchievementsResponse } from '../model/profile.entity';
+import type { UserProfile, UserAchievement, AchievementsResponse } from '../model/profile.entity';
 import { profileService } from '../infrastructure/profile.service';
 
 export const useProfileStore = defineStore('profile', () => {
