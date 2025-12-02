@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import { useAuthenticationStore } from '../../iam/services/Authentication.Store.ts';
+import { useProfileStore } from '../application/profile.store';
 import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
 import Textarea from 'primevue/textarea';
@@ -12,43 +13,127 @@ interface Stats {
   icon: string;
 }
 
-const fullName = ref('John Doe');
-const email = ref('john@plantcare.com');
-const phone = ref('+1 (555) 123-4567');
-const bio = ref('Plant enthusiast and urban gardener. Love taking care of tropical plants and sharing tips with the community.');
-const location = ref('San Francisco, CA');
-const joinDate = ref('January 2024');
-
-const stats = ref<Stats[]>([
-  { icon: '🌱', value: 24, label: 'Total plants' },
-  { icon: '💧', value: 156, label: 'Watering Sessions' },
-  { icon: '📅', value: '8 months', label: 'Member Since' },
-  { icon: '✅', value: '95%', label: 'Success Rate' },
-]);
-
-const recentAchievements = ref([
-  { icon: '🏆', title: 'Plant Master', description: 'Reached 20+ plants', date: '2 weeks ago' },
-  { icon: '💧', title: 'Hydration Hero', description: '100 watering sessions', date: '1 month ago' },
-  { icon: '📊', title: 'Data Tracker', description: 'Logged 30 days consecutively', date: '2 months ago' },
-]);
+const authStore = useAuthenticationStore();
+const profileStore = useProfileStore();
 
 const isEditing = ref(false);
-const loading = ref(false);
+const formData = ref({
+  fullName: '',
+  phone: '',
+  bio: '',
+  location: ''
+});
 
-// Obtener el store de autenticación
-const authStore = useAuthenticationStore();
+const avatarFile = ref<File | null>(null);
 
-// Variables reactivas para los datos del perfil
-const profileId = ref<number | null>(null);
-const avatarPreview = ref<string | null>(null);
+// Computed properties for display
+const fullName = computed(() => {
+  const p = profileStore.profile;
+  if (!p) return 'Usuario';
+  return p.fullName || `${p.firstName || ''} ${p.lastName || ''}`.trim() || p.name || p.username || 'Usuario';
+});
+const email = computed(() => profileStore.profile?.email || authStore.email || '');
+const phone = computed(() => profileStore.profile?.phone || '');
+const bio = computed(() => profileStore.profile?.bio || '');
+const location = computed(() => profileStore.profile?.location || '');
+const joinDate = computed(() => {
+  if (profileStore.profile?.joinDate) {
+    return new Date(profileStore.profile.joinDate).toLocaleDateString('es-PE');
+  }
+  return '';
+});
+
+const avatarPreview = computed(() => profileStore.profile?.avatarUrl || null);
+
+const stats = computed<Stats[]>(() => {
+  if (!profileStore.profile?.stats) {
+    return [
+      { icon: '🌱', value: 0, label: 'Total plants' },
+      { icon: '💧', value: 0, label: 'Watering Sessions' },
+      { icon: '📅', value: '', label: 'Member Since' },
+      { icon: '✅', value: '0%', label: 'Success Rate' },
+    ];
+  }
+  return [
+    { icon: '🌱', value: profileStore.profile.stats.totalPlants || 0, label: 'Total plants' },
+    { icon: '💧', value: profileStore.profile.stats.wateringSessions || 0, label: 'Watering Sessions' },
+    { icon: '📅', value: joinDate.value, label: 'Member Since' },
+    { icon: '✅', value: `${profileStore.profile.stats.successRate ?? 0}%`, label: 'Success Rate' },
+  ];
+});
+
+const recentAchievements = computed(() => {
+  return profileStore.achievements.map(a => ({
+    icon: a.icon || '🏆',
+    title: a.title,
+    description: a.description,
+    date: a.earnedDate ? new Date(a.earnedDate).toLocaleDateString('es-PE') : '—',
+    status: a.status
+  }));
+});
+
+// Watch for auth state changes and load profile
+watch(
+  () => authStore.isSignedIn,
+  (isReady) => {
+    console.log('[Profile.vue] Auth state changed, isSignedIn:', isReady);
+    if (isReady) {
+      console.log('[Profile.vue] Calling fetchProfile() and fetchAchievements()');
+      profileStore.fetchProfile();
+      profileStore.fetchAchievements();
+    } else {
+      profileStore.$reset();
+    }
+  },
+  { immediate: false } // NO immediate porque lo hacemos en onMounted
+);
+
+onMounted(async () => {
+  console.log('[Profile.vue] onMounted - initializing auth store');
+  if (!authStore.isInitialized) {
+    authStore.initialize();
+  }
+  
+  // Ahora cargar el perfil directamente si está autenticado
+  await new Promise(resolve => setTimeout(resolve, 100));
+  
+  if (authStore.isSignedIn) {
+    console.log('[Profile.vue] User is signed in, fetching profile');
+    profileStore.fetchProfile();
+    profileStore.fetchAchievements();
+  } else {
+    console.log('[Profile.vue] User is NOT signed in');
+  }
+});
+
+// Debug computed
+const debugInfo = computed(() => ({
+  authStoreIsSignedIn: authStore.isSignedIn,
+  authStoreToken: authStore.token ? '***exists***' : 'null',
+  profileStoreProfile: profileStore.profile,
+  profileStoreLoading: profileStore.loading,
+  profileStoreError: profileStore.error,
+  localStorageToken: localStorage.getItem('token') ? '***exists***' : 'null'
+}));
 
 const handleEdit = () => {
+  // Initialize form with current data
+  formData.value = {
+    fullName: profileStore.profile?.fullName || '',
+    phone: profileStore.profile?.phone || '',
+    bio: profileStore.profile?.bio || '',
+    location: profileStore.profile?.location || ''
+  };
   isEditing.value = true;
 };
 
-const handleSave = () => {
-  isEditing.value = false;
-  // Aquí podrías agregar lógica para guardar los cambios en la API
+const handleSave = async () => {
+  try {
+    await profileStore.updateProfile(formData.value);
+    isEditing.value = false;
+  } catch (error) {
+    console.error('Error al guardar perfil:', error);
+  }
 };
 
 const handleCancel = () => {
@@ -56,85 +141,32 @@ const handleCancel = () => {
 };
 
 const handleChangeAvatar = () => {
-  // Aquí podrías agregar lógica para cambiar el avatar
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/jpeg,image/png';
+  input.onchange = async (e: Event) => {
+    const target = e.target as HTMLInputElement;
+    const file = target.files?.[0];
+    if (file) {
+      avatarFile.value = file;
+      try {
+        await profileStore.uploadAvatar(file);
+      } catch (error) {
+        console.error('Error al cargar avatar:', error);
+      }
+    }
+  };
+  input.click();
 };
-
-// Cargar perfil del usuario logueado
-const loadUserProfile = async () => {
-  // Obtener el ID del usuario logueado desde el store
-  const loggedUserId = authStore.uuid;
-
-  if (!loggedUserId) {
-    // Intentar obtener datos de localStorage directamente como fallback
-    const userUuid = localStorage.getItem('userUuid');
-
-    if (userUuid) {
-      await loadProfileFromAPI(userUuid);
-      return;
-    }
-
-    return;
-  }
-
-  await loadProfileFromAPI(loggedUserId);
-};
-
-// Función separada para cargar desde la API
-const loadProfileFromAPI = async (userId: string) => {
-  loading.value = true;
-
-  try {
-    const response = await fetch(`https://fakeapiplant.vercel.app/profiles?userId=${userId}`);
-
-    if (!response.ok) {
-      return;
-    }
-
-    const profiles = await response.json();
-
-    if (!Array.isArray(profiles) || profiles.length === 0) {
-      return;
-    }
-
-    const userProfile = profiles[0];
-
-    // Actualizar los datos del perfil
-    profileId.value = userProfile.id;
-    fullName.value = userProfile.displayName || 'Usuario';
-    email.value = userProfile.email || authStore.email || '';
-    phone.value = userProfile.phone || '';
-    bio.value = userProfile.bio || '';
-    location.value = userProfile.location || '';
-    joinDate.value = userProfile.joinDate || 'Reciente';
-
-    if (userProfile.avatarUrl) {
-      avatarPreview.value = userProfile.avatarUrl;
-    }
-
-  } catch (error) {
-    // Error silencioso
-  } finally {
-    loading.value = false;
-  }
-};
-
-// Cargar el perfil cuando el componente se monta
-onMounted(async () => {
-  // Inicializar el store de autenticación si no está inicializado
-  if (!authStore.isInitialized) {
-    authStore.initialize();
-  }
-
-  // Esperar un poco para que se complete la inicialización
-  await new Promise(resolve => setTimeout(resolve, 100));
-
-  // Cargar el perfil del usuario
-  await loadUserProfile();
-});
 </script>
 
 <template>
   <div class="profile">
+    <!-- DEBUG INFO -->
+    <div style="background: #f0f0f0; padding: 10px; margin: 10px; border: 1px solid red; font-size: 12px; display: none;">
+      <pre>{{ JSON.stringify(debugInfo, null, 2) }}</pre>
+    </div>
+    
     <div class="content">
       <!-- Profile Card -->
       <div class="profile-card">
@@ -194,24 +226,24 @@ onMounted(async () => {
             <div v-if="isEditing" class="form-container">
               <div class="form-group">
                 <label class="label">Full Name</label>
-                <InputText v-model="fullName" class="input" />
+                <InputText v-model="formData.fullName" class="input" />
               </div>
               <div class="form-group">
                 <label class="label">Email Address</label>
-                <InputText v-model="email" type="email" class="input" />
+                <InputText v-model="email" type="email" class="input" disabled />
               </div>
               <div class="form-group">
                 <label class="label">Phone Number</label>
-                <InputText v-model="phone" type="tel" class="input" />
+                <InputText v-model="formData.phone" type="tel" class="input" />
               </div>
               <div class="form-group">
                 <label class="label">Location</label>
-                <InputText v-model="location" class="input" />
+                <InputText v-model="formData.location" class="input" />
               </div>
               <div class="form-group">
                 <label class="label">Bio</label>
                 <Textarea
-                    v-model="bio"
+                    v-model="formData.bio"
                     rows="4"
                     class="input"
                 />
@@ -221,6 +253,7 @@ onMounted(async () => {
                     label="Save Changes"
                     class="btn-primary"
                     @click="handleSave"
+                    :loading="profileStore.loading"
                 />
                 <Button
                     label="Cancel"
@@ -236,11 +269,11 @@ onMounted(async () => {
               </div>
               <div class="info-item">
                 <span class="info-label">Phone</span>
-                <span class="info-value">{{ phone }}</span>
+                <span class="info-value">{{ phone || '—' }}</span>
               </div>
               <div class="info-item">
                 <span class="info-label">Location</span>
-                <span class="info-value">{{ location }}</span>
+                <span class="info-value">{{ location || '—' }}</span>
               </div>
               <div class="info-item">
                 <span class="info-label">Member Since</span>
@@ -256,11 +289,12 @@ onMounted(async () => {
             <h2 class="card-title">Recent Achievements</h2>
           </div>
           <div class="card-content">
-            <div class="achievements-list">
+            <div v-if="recentAchievements.length > 0" class="achievements-list">
               <div
                   v-for="(achievement, index) in recentAchievements"
                   :key="index"
                   class="achievement-item"
+                  :class="{ 'locked': achievement.status === 'locked' }"
               >
                 <div class="achievement-icon">{{ achievement.icon }}</div>
                 <div class="achievement-content">
@@ -269,6 +303,9 @@ onMounted(async () => {
                 </div>
                 <span class="achievement-date">{{ achievement.date }}</span>
               </div>
+            </div>
+            <div v-else class="empty-achievements">
+              <p>No achievements yet. Keep watering your plants! 🌱</p>
             </div>
           </div>
         </div>
@@ -555,6 +592,20 @@ onMounted(async () => {
   font-size: var(--font-size-xs);
   color: var(--text-light);
   white-space: nowrap;
+}
+
+.empty-achievements {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 150px;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.empty-achievements p {
+  margin: 0;
+  font-size: var(--font-size-base);
 }
 
 @media (max-width: 992px) {
