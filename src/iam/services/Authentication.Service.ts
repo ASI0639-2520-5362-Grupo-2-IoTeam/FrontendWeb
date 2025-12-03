@@ -52,12 +52,12 @@ function decodeJWT(token?: string | null): any | null {
 export class AuthenticationService {
     async signUp(signUpRequest: SignUpRequest): Promise<AxiosResponse<RegisterResponse>> {
         // POST /api/auth/register (el baseURL ya incluye /api)
-        return http.post<RegisterResponse>(`/authentication/signup`, signUpRequest);
+        return http.post<RegisterResponse>(`/authentication/sign-up`, signUpRequest);
     }
 
     async signIn(signInRequest: SignInRequest): Promise<AxiosResponse<LoginResponse>> {
         // POST /api/auth/login
-        const response = await http.post<LoginResponse>(`/authentication/signin`, signInRequest);
+        const response = await http.post<LoginResponse>(`/authentication/sign-in`, signInRequest);
 
         const token = response.data.token;
         const uuid = response.data.uuid;
@@ -94,7 +94,7 @@ export class AuthenticationService {
 
 
     async signInWithGoogle(googleToken: string) {
-        return axios.post(`${import.meta.env.VITE_PLANTCARE_API_URL}/authentication/google/signin`, { googleToken });
+        return axios.post(`${import.meta.env.VITE_PLANTCARE_API_URL}/authentication/google/sign-in`, { googleToken });
     }
 
     // Fallback: obtener perfil del usuario autenticado
