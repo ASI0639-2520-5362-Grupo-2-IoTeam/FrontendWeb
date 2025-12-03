@@ -10,15 +10,20 @@ export class AnalyticsAssembler {
      * Convierte datos del backend al formato SensorData del dominio
      */
     static mapSensorData(raw: any): SensorData {
-        return {
+        console.log('[AnalyticsAssembler] Mapping raw data:', raw);
+        
+        const mapped = {
             id: Number(raw.id || 0),
-            device_id: String(raw.device_id || ''),
-            temperature: Number(raw.air_temperature_celsius || 0),
-            humidity: Number(raw.air_humidity_percent || 0),
-            light: Number(raw.luminosity_lux || 0),
-            soil_humidity: Number(raw.soil_moisture_percent || 0),
-            created_at: raw.created_at || new Date().toISOString()
+            device_id: String(raw.deviceId || ''),
+            temperature: Number(raw.airTemperatureC || 0),
+            humidity: Number(raw.airHumidityPct || 0),
+            light: Number(raw.lightIntensityLux || 0),
+            soil_humidity: Number(raw.soilMoisturePct || 0),
+            created_at: raw.timestamp || new Date().toISOString()
         };
+        
+        console.log('[AnalyticsAssembler] Mapped result:', mapped);
+        return mapped;
     }
 
     /**
@@ -129,12 +134,12 @@ export class AnalyticsAssembler {
      */
     static toBackend(sensorData: Omit<SensorData, 'id'>[]): any {
         return sensorData.map(data => ({
-            device_id: data.device_id,
-            air_temperature_celsius: Number(data.temperature),
-            air_humidity_percent: Number(data.humidity),
-            luminosity_lux: Number(data.light),
-            soil_moisture_percent: Number(data.soil_humidity),
-            created_at: data.created_at
+            deviceId: data.device_id,
+            airTemperatureC: Number(data.temperature),
+            airHumidityPct: Number(data.humidity),
+            lightIntensityLux: Number(data.light),
+            soilMoisturePct: Number(data.soil_humidity),
+            timestamp: data.created_at
         }));
     }
 }

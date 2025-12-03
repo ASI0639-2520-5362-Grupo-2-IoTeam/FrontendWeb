@@ -89,10 +89,22 @@ export class AnalyticsService {
 
     /**
      * Obtener el promedio de los últimos N datos de sensores
+     * Ordena por fecha y toma los más recientes
      */
     async getRecentAverages(limit: number = 5): Promise<AxiosResponse<any>> {
         const res = await this.getAllSensorData();
-        const recentData = res.data.slice(-limit); // Últimos N registros
+        
+        console.log('[AnalyticsService] Raw data from backend:', res.data);
+        
+        // Ordenar por fecha (más reciente primero)
+        const sortedData = [...res.data].sort((a: any, b: any) => 
+            new Date(b.timestamp || b.created_at).getTime() - new Date(a.timestamp || a.created_at).getTime()
+        );
+        
+        // Tomar los últimos N registros ordenados
+        const recentData = sortedData.slice(0, limit);
+        
+        console.log('[AnalyticsService] Recent data selected:', recentData);
         
         if (recentData.length === 0) {
             return {
@@ -102,17 +114,23 @@ export class AnalyticsService {
                     avgHumidity: 0,
                     avgSoilMoisture: 0,
                     avgLight: 0,
+                    minTemperature: 0,
+                    maxTemperature: 0,
                     count: 0,
-                    period: { start: null, end: null }
+                    period: { start: null, end: null },
+                    history: []
                 }
             };
         }
 
-        const summary = AnalyticsAssembler.calculateSummary(
-            recentData.map((d: any) => AnalyticsAssembler.mapSensorData(d))
-        );
+        // Mapear los datos crudos a SensorData
+        const mappedData = recentData.map((d: any) => AnalyticsAssembler.mapSensorData(d));
+        console.log('[AnalyticsService] Mapped data:', mappedData);
+        
+        const summary = AnalyticsAssembler.calculateSummary(mappedData);
+        console.log('[AnalyticsService] Calculated summary:', summary);
 
-        const dates = recentData.map((d: any) => d.created_at);
+        const dates = recentData.map((d: any) => d.timestamp || d.created_at);
         
         return {
             ...res,
@@ -120,10 +138,10 @@ export class AnalyticsService {
                 ...summary,
                 count: recentData.length,
                 period: {
-                    start: dates[0],
-                    end: dates[dates.length - 1]
+                    start: dates[dates.length - 1], // El más antiguo de los últimos N
+                    end: dates[0] // El más reciente
                 },
-                history: recentData
+                history: mappedData
             }
         };
     }
