@@ -17,11 +17,16 @@ const userName = computed(() => {
 });
 
 const theme = ref<'light' | 'dark'>('light');
+const isToggling = ref(false);
 
 const toggleTheme = () => {
+  isToggling.value = true;
   const newTheme = theme.value === 'light' ? 'dark' : 'light';
   theme.value = newTheme;
   document.documentElement.setAttribute('data-theme', newTheme);
+  setTimeout(() => {
+    isToggling.value = false;
+  }, 500);
 };
 
 const handleMenuClick = () => {
@@ -43,7 +48,7 @@ const handleMenuClick = () => {
       >
         <span class="menu-icon">☰</span>
       </Button>
-      <h1 class="greeting">Hello, {{ userName }}!  👋</h1>
+      <h1 class="greeting">Hello, <span class="gradient-text">{{ userName }}</span>! 👋</h1>
     </div>
 
     <div class="header-right">
@@ -52,7 +57,7 @@ const handleMenuClick = () => {
           outlined
           @click="toggleTheme"
       >
-        <span class="theme-icon">{{ theme === 'light' ? '🌙' : '☀️' }}</span>
+        <span class="theme-icon" :class="{ rotating: isToggling }">{{ theme === 'light' ? '🌙' : '☀️' }}</span>
         <span>{{ theme === 'light' ? 'Dark' : 'Light' }}</span>
       </Button>
 
@@ -68,6 +73,25 @@ const handleMenuClick = () => {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  position: relative;
+  backdrop-filter: blur(10px);
+  box-shadow: var(--shadow-sm);
+}
+
+.header::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--primary-green), transparent);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.header:hover::after {
+  opacity: 0.5;
 }
 
 .header-left {
@@ -84,16 +108,23 @@ const handleMenuClick = () => {
   cursor: pointer;
   color: var(--text-primary);
   padding: var(--spacing-sm);
-  border-radius: var(--radius-sm);
-  transition: background 0.2s ease;
+  border-radius: var(--radius-md);
+  transition: all 0.2s ease;
 }
 
 .menu-button:hover {
-  background: rgba(138, 199, 61, 0.1) !important;
+  background: var(--primary-green-light) !important;
+  transform: scale(1.05);
   }
 
 .menu-icon {
   font-size: 24px;
+  display: inline-block;
+  transition: transform 0.3s ease;
+}
+
+.menu-button:hover .menu-icon {
+  transform: rotate(90deg);
 }
 
 .greeting {
@@ -101,6 +132,15 @@ const handleMenuClick = () => {
   font-weight: var(--font-weight-bold);
   color: var(--text-primary);
   margin: 0;
+  letter-spacing: -0.5px;
+}
+
+.gradient-text {
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: var(--font-weight-extrabold);
 }
 
 .header-right {
@@ -111,9 +151,9 @@ const handleMenuClick = () => {
 
 .theme-toggle {
   background: var(--bg-primary) !important;
-  border: 1px solid var(--border-color) !important;
-  padding: 8px 16px;
-  border-radius: var(--radius-md);
+  border: 2px solid var(--border-color) !important;
+  padding: 10px 18px;
+  border-radius: var(--radius-full);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -121,17 +161,35 @@ const handleMenuClick = () => {
   font-size: var(--font-size-sm);
   color: var(--text-primary) !important;
   font-weight: var(--font-weight-semibold);
-  transition: all 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
 }
 
-.theme-toggle:hover {
-  border-color: var(--primary-green) !important;
-  box-shadow: var(--shadow-sm);
+.theme-toggle::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
 }
 
 .theme-icon {
   display: flex;
   align-items: center;
+  font-size: 18px;
+  transition: transform 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+.theme-icon.rotating {
+  animation: rotate360 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+@keyframes rotate360 {
+  from { transform: rotate(0deg) scale(1); }
+  50% { transform: rotate(180deg) scale(1.2); }
+  to { transform: rotate(360deg) scale(1); }
 }
 
 

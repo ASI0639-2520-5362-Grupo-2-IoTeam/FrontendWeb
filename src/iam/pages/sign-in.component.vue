@@ -115,7 +115,7 @@ async function handleGoogleCallback(response: any) {
     });
   }
 }
-</script>-->
+</script>
 
 <template>
   <div class="container">
@@ -209,13 +209,27 @@ async function handleGoogleCallback(response: any) {
   background-color: #16444E;
   color: #DEF5FA;
 }
+
 .container {
-  max-width: 450px;
-  margin: 2rem auto;
-  padding: 2rem;
-  background-color: #fff;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  max-width: 480px;
+  margin: 3rem auto;
+  padding: 2.5rem;
+  background: var(--bg-card);
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--shadow-xl);
+  border: 1px solid var(--border-color);
+  position: relative;
+  overflow: hidden;
+}
+
+.container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: var(--gradient-primary);
 }
 
 .login {
@@ -230,12 +244,17 @@ async function handleGoogleCallback(response: any) {
   margin: 1rem 0;
   display: block;
 }
+
 .title {
-  color: #16444E;
-  font-size: 1.8rem;
-  font-weight: 600;
-  margin-bottom: 1rem;
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-size: 2rem;
+  font-weight: var(--font-weight-extrabold);
+  margin-bottom: 1.5rem;
   text-align: center;
+  letter-spacing: -0.5px;
 }
 
 .field {
@@ -280,6 +299,7 @@ async function handleGoogleCallback(response: any) {
   text-align: center;
   margin: 1.5rem 0;
 }
+
 .recaptcha-container {
   display: flex;
   justify-content: center;
@@ -287,6 +307,7 @@ async function handleGoogleCallback(response: any) {
   flex-direction: column;
   align-items: center;
 }
+
 .text-registro {
   color: #666;
 }
@@ -301,32 +322,32 @@ async function handleGoogleCallback(response: any) {
   display: flex;
   justify-content: center;
   margin-top: 1rem;
-
 }
 
 :deep(.btn-register) {
-  background-color: #16444E;
+  background: var(--gradient-primary);
   border: none;
-  border-radius: 6rem;
+  border-radius: var(--radius-full);
   color: white;
-  padding: 0.75rem 2rem;
-  font-weight: 600;
-  transition: all 0.3s;
+  padding: 0.875rem 2.5rem;
+  font-weight: var(--font-weight-bold);
+  transition: all 0.3s ease;
   cursor: pointer;
-  width: 58%;
+  width: 68%;
   text-align: center;
   display: flex;
   justify-content: center;
   align-items: center;
+  box-shadow: var(--shadow-green);
 }
 
 :deep(.btn-register:hover) {
-  background-color: #1d5561;
-  box-shadow: 0 4px 8px rgba(22, 68, 78, 0.3);
+  transform: translateY(-3px) scale(1.05);
+  box-shadow: var(--shadow-xl);
 }
 
 :deep(.btn-register:focus) {
-  box-shadow: 0 0 0 2px rgba(22, 68, 78, 0.4);
+  box-shadow: var(--shadow-xl);
 }
 
 :deep(.p-toast) {

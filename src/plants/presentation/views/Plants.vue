@@ -194,9 +194,13 @@ const getLatestHumidity = (plant: Plant): number | string => {
 
 .title {
   font-size: var(--font-size-2xl);
-  font-weight: var(--font-weight-bold);
-  color: var(--text-primary);
+  font-weight: var(--font-weight-extrabold);
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
   margin: 0;
+  letter-spacing: -0.5px;
 }
 
 .actions {
@@ -210,10 +214,18 @@ const getLatestHumidity = (plant: Plant): number | string => {
   align-items: center;
   gap: var(--spacing-sm);
   background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  padding: 10px 16px;
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 12px 18px;
   min-width: 300px;
+  transition: all 0.3s ease;
+  box-shadow: var(--shadow-sm);
+}
+
+.search-box:focus-within {
+  border-color: var(--primary-green);
+  box-shadow: var(--shadow-green);
+  transform: translateY(-2px);
 }
 
 .search-icon {
@@ -241,21 +253,21 @@ const getLatestHumidity = (plant: Plant): number | string => {
   display: flex !important;
   align-items: center;
   gap: var(--spacing-sm);
-  background: var(--primary-green) !important;
+  background: var(--gradient-primary) !important;
   color: #ffffff !important;
   border: none !important;
-  padding: 12px 24px;
-  border-radius: var(--radius-md);
-  font-weight: var(--font-weight-semibold);
+  padding: 14px 28px;
+  border-radius: var(--radius-lg);
+  font-weight: var(--font-weight-bold);
   font-size: var(--font-size-base);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
+  box-shadow: var(--shadow-green);
 }
 
 .add-button:hover {
-  background: #7ab531 !important;
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-md);
+  transform: translateY(-3px) scale(1.05);
+  box-shadow: var(--shadow-xl);
 }
 
 .add-icon {
@@ -272,25 +284,46 @@ const getLatestHumidity = (plant: Plant): number | string => {
 
 .filter-button {
   background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  padding: 8px 16px;
-  border-radius: var(--radius-md);
+  border: 2px solid var(--border-color);
+  padding: 10px 20px;
+  border-radius: var(--radius-full);
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-semibold);
   color: var(--text-secondary);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.filter-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: var(--gradient-primary);
+  transition: left 0.3s ease;
+  z-index: -1;
 }
 
 .filter-button:hover {
   border-color: var(--primary-green);
   color: var(--primary-green);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
 }
 
 .filter-button.active {
-  background: var(--primary-green);
+  background: var(--gradient-primary);
   border-color: var(--primary-green);
   color: #ffffff;
+  box-shadow: var(--shadow-green);
+}
+
+.filter-button.active::before {
+  left: 0;
 }
 
 .plants-grid {
@@ -301,16 +334,18 @@ const getLatestHumidity = (plant: Plant): number | string => {
 
 .plant-card {
   background: var(--bg-card);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-xl);
   overflow: hidden;
   box-shadow: var(--shadow-md);
+  border: 1px solid var(--border-color);
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .plant-card:hover {
-  transform: translateY(-4px);
-  box-shadow: var(--shadow-lg);
+  transform: translateY(-8px) scale(1.02);
+  box-shadow: var(--shadow-2xl);
+  border-color: var(--primary-green);
 }
 
 .plant-image {
@@ -333,8 +368,13 @@ const getLatestHumidity = (plant: Plant): number | string => {
   display: block;
   margin: auto;
   border-radius: 16px;
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-md);
   background: transparent;
+  transition: transform 0.4s ease;
+}
+
+.plant-card:hover .plant-img {
+  transform: scale(1.1);
 }
 
 .plant-status {
