@@ -1,7 +1,7 @@
 import { ref, onMounted, computed } from 'vue';
 import { useAuthenticationStore } from '../../../iam/services/Authentication.Store';
 import { AnalyticsService } from '../../../analytics/infrastructure/analytics.service';
-import { PlantsService } from '../../../plants/infrastructure/plats.services';
+import { PlantsService } from '../../../plants/infrastructure/plants.services';
 import type { Plant } from '../../../plants/domain/model/plants.entity';
 
 // Interfaces for dashboard data

@@ -3,7 +3,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useAuthenticationStore } from '../../../iam/services/Authentication.Store.ts'
 import { AnalyticsService } from '../../infrastructure/analytics.service.ts'
-import { PlantsService } from '../../../plants/infrastructure/plats.services.ts'
+import { PlantsService } from '../../../plants/infrastructure/plants.services.ts'
 import type { Analytics } from '../../domain/model/analytics.entity.ts'
 import type { Plant } from '../../../plants/domain/model/plants.entity.ts'
 

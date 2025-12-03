@@ -1,7 +1,7 @@
-import type { Plant } from "../domain/model/plants.entity";
-import { BaseApi, ENDPOINTS } from "../../shared/infrastructure/base-endpoint";
+import type { Plant } from "../domain/model/plants.entity.ts";
+import { BaseApi, ENDPOINTS } from "../../shared/infrastructure/base-endpoint.ts";
 import type { AxiosRequestConfig } from 'axios';
-import { PlantAssembler } from "./assambler/plant-assembler.ts";
+import { PlantAssembler } from "./assambler/plants-assembler.ts";
 
 
 export class PlantsService {
@@ -83,9 +83,9 @@ export class PlantsService {
   async waterPlant(plantId: number | string, wateredAt?: string) {
     const body = wateredAt ? { wateredAt } : {};
     await this.baseApi.http.post<any>(
-        `${this.resourceEndpoint}/${plantId}/watering`,
-        body,
-        this.getAuthHeaders()
+      `${this.resourceEndpoint}/${plantId}/watering`,
+      body,
+      this.getAuthHeaders()
     );
     // After watering, always re-fetch the plant data to get the updated state including metrics.
     return this.getPlantById(plantId);

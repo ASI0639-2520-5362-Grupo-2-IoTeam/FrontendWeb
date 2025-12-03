@@ -55,7 +55,7 @@ import { useAuthenticationStore } from '../../../iam/services/Authentication.Sto
 import InputText from 'primevue/inputtext';
 import Textarea from 'primevue/textarea';
 import Button from 'primevue/button';
-import { PlantsService } from '../../infrastructure/plats.services';
+import { PlantsService } from '../../infrastructure/plants.services';
 import type { Plant } from '../../domain/model/plants.entity';
 
 const router = useRouter();

@@ -10,7 +10,7 @@ import Toast from 'primevue/toast';
 import ProgressSpinner from 'primevue/progressspinner';
 import { useConfirm } from "primevue/useconfirm";
 import { useToast } from "primevue/usetoast";
-import { PlantsService } from '../../infrastructure/plats.services';
+import { PlantsService } from '../../infrastructure/plants.services';
 import type { Plant as PlantEntity, Metric } from '../../domain/model/plants.entity';
 
 const router = useRouter();

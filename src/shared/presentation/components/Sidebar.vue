@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
-import Avatar from 'primevue/avatar';
+
 import { useAuthenticationStore} from "../../../iam/services/Authentication.Store.ts";
 import logo from '../../../assets/pc_logo_green.png'
 
@@ -60,7 +60,7 @@ const userName = computed(() => {
   return 'Guest';
 });
 
-const userEmail = computed(() => authStore.email ?? '—');
+
 
 const authStatusClass = computed(() => ({
   'status-dot': true,
@@ -100,15 +100,8 @@ const authStatusClass = computed(() => ({
 
     <div class="footer">
       <div class="user-section">
-        <Avatar
-            :label="(userName)"
-            class="user-avatar"
-            shape="circle"
-        />
         <div class="user-info">
           <div class="user-name">{{ userName }}</div>
-          <div class="user-email">{{ userEmail }}</div>
-          <div class="user-id">ID: {{ authStore.uuid ?? '—' }}</div>
         </div>
         <div :class="authStatusClass" :title="authStore.isSignedIn ? 'Signed in' : 'Signed out'"></div>
       </div>
@@ -225,14 +218,7 @@ const authStatusClass = computed(() => ({
   box-shadow: var(--shadow-sm);
 }
 
-.user-avatar {
-  width: 40px !important;
-  height: 40px !important;
-  background: var(--primary-green) !important;
-  color: #ffffff !important;
-  font-weight: var(--font-weight-bold) !important;
-  flex-shrink: 0;
-}
+
 
 .user-info {
   flex: 1;
@@ -248,19 +234,7 @@ const authStatusClass = computed(() => ({
   text-overflow: ellipsis;
 }
 
-.user-email {
-  font-size: var(--font-size-xs);
-  color: var(--text-secondary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
 
-.user-id {
-  font-size: 11px;
-  color: var(--text-light);
-  margin-top: 4px;
-}
 
 .status-dot {
   width: 10px;

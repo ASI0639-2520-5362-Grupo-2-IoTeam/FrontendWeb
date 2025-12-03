@@ -1,7 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import { useAuthenticationStore } from './iam/services/Authentication.Store.ts';
 import analyticsRoutes from './analytics/presentation/analytics-routes';
-import plantmanagementRoutes from './plants/presentation/plantmanagement-routes';
+import plantmanagementRoutes from './plants/presentation/plants-routes.ts';
 import subscriptionRoutes from './subscription/presentation/subscription-routes.ts';
 
 const router = createRouter({
@@ -37,7 +37,7 @@ const router = createRouter({
         // Rutas anidadas para PlantManagement
         {
             path: '/plants',
-            component: () => import('./plants/presentation/views/PlantManagementLayout.vue'),
+            component: () => import('./plants/presentation/views/PlantsLayout.vue'),
             meta: { requiresAuth: true },
             children: [
                 {

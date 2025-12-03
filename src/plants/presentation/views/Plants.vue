@@ -6,7 +6,7 @@ import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
 import type { Plant } from '../../domain/model/plants.entity';
 import { useAuthenticationStore } from '../../../iam/services/Authentication.Store';
-import { usePlantManagementStore } from '../../application/plantmanagement.store';
+import { usePlantManagementStore } from '../../application/plants.store';
 
 interface Filter {
   id: string;

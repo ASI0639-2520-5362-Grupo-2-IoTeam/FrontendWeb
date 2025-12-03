@@ -1,9 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import Button from 'primevue/button';
-import Badge from 'primevue/badge';
-import Avatar from 'primevue/avatar';
-import { useRouter } from 'vue-router';
+
 import { useAuthenticationStore } from '../../../iam/services/Authentication.Store';
 
 const emit = defineEmits<{
@@ -30,12 +28,8 @@ const handleMenuClick = () => {
   emit('menuClick');
 };
 
-const router = useRouter();
 
 
-const goToProfile = () => {
-  router.push('/profile');
-};
 </script>
 
 <template>
@@ -62,22 +56,6 @@ const goToProfile = () => {
         <span>{{ theme === 'light' ? 'Dark' : 'Light' }}</span>
       </Button>
 
-      <Button
-          class="notification-button"
-          outlined
-          aria-label="Notifications"
-      >
-        <span class="notification-icon">🔔</span>
-        <Badge value="3" severity="danger" class="notification-badge" />
-      </Button>
-      <Avatar
-        label="JD"
-        shape="circle"
-        size="large"
-        class="header-avatar"
-        style="cursor:pointer; margin-left:16px;"
-        @click="goToProfile"
-      />
     </div>
   </header>
 </template>
@@ -112,7 +90,7 @@ const goToProfile = () => {
 
 .menu-button:hover {
   background: rgba(138, 199, 61, 0.1) !important;
-}
+  }
 
 .menu-icon {
   font-size: 24px;
@@ -154,43 +132,6 @@ const goToProfile = () => {
 .theme-icon {
   display: flex;
   align-items: center;
-}
-
-.notification-button {
-  position: relative;
-  background: var(--bg-primary) !important;
-  border: 1px solid var(--border-color) !important;
-  width: 40px;
-  height: 40px;
-  border-radius: var(--radius-md);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  font-size: 18px;
-  transition: all 0.2s ease;
-  padding: 0;
-}
-
-.notification-button:hover {
-  border-color: var(--primary-green) !important;
-  box-shadow: var(--shadow-sm);
-}
-
-.notification-icon {
-  font-size: 18px;
-}
-
-.notification-badge {
-  position: absolute !important;
-  top: -4px;
-  right: -4px;
-  min-width: 18px;
-  height: 18px;
-}
-
-.header-avatar {
-  cursor: pointer;
 }
 
 

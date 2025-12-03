@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import type { Plant } from '../domain/model/plants.entity';
-import { PlantsService } from '../infrastructure/plats.services';
+import { PlantsService } from '../infrastructure/plants.services';
 
 export const usePlantManagementStore = defineStore('plantManagement', () => {
   const plants = ref<Plant[]>([]);
