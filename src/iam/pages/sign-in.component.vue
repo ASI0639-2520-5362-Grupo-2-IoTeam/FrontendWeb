@@ -6,7 +6,7 @@ import { useRouter } from 'vue-router';
 import { useToast } from 'primevue/usetoast';
 import type { AxiosError } from 'axios';
 import axios from 'axios';
-import logo from '../../assets/vue.svg';
+import logo from '../../assets/pc_logo_green.png';
 import { onMounted } from 'vue';
 
 // --- State (ref) ---
